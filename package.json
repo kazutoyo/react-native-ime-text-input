@@ -25,6 +25,7 @@
     "ios",
     "*.podspec",
     "react-native.config.js",
+    "CHANGELOG.md",
     "README.md",
     "README.ja.md",
     "!ios/build",

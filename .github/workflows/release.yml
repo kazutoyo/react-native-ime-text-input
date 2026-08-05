@@ -15,7 +15,7 @@ jobs:
     # approve the run before anything reaches npm.
     environment: npm-publish
     permissions:
-      contents: read
+      contents: write # to create the GitHub release
       id-token: write # trusted publishing — no NPM_TOKEN, and npm attaches provenance
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -46,8 +46,33 @@ jobs:
             exit 1
           fi
 
+      # Before publishing, not after: a version can never be republished, so a
+      # missing changelog entry should stop the release while that is still free.
+      - name: Take the release notes from the changelog
+        run: |
+          python3 - "$GITHUB_REF_NAME" > "$RUNNER_TEMP/notes.md" <<'PY'
+          import pathlib, re, sys
+
+          version = sys.argv[1]
+          changelog = pathlib.Path('CHANGELOG.md').read_text()
+          section = re.search(
+              rf'^## \[{re.escape(version)}\].*?$(.*?)(?=^## |\Z)', changelog, re.S | re.M
+          )
+          if section is None or not section.group(1).strip():
+              sys.exit(f'CHANGELOG.md has no entry for {version}')
+          print(section.group(1).strip())
+          PY
+
       - run: npm test
       - run: npm run typecheck
 
       # `prepare` rebuilds `build/` from scratch as part of publishing.
       - run: npm publish
+
+      - name: Create the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            --title "$GITHUB_REF_NAME" \
+            --notes-file "$RUNNER_TEMP/notes.md"
