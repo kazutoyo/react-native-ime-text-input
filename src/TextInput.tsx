@@ -1,6 +1,7 @@
 import { useImperativeHandle, useRef } from 'react';
 import { TextInput as RNTextInput, type TextInputProps as RNTextInputProps } from 'react-native';
 
+import { setSelectionOn } from './setSelection';
 import type { TextInputProps, TextInputRef } from './types';
 
 /**
@@ -21,7 +22,7 @@ export function TextInput({ ref, ...props }: TextInputProps) {
       blur: () => innerRef.current?.blur(),
       clear: () => innerRef.current?.clear(),
       isFocused: () => innerRef.current?.isFocused() ?? false,
-      setSelection: (start: number, end: number) => innerRef.current?.setSelection(start, end),
+      setSelection: (start: number, end: number) => setSelectionOn(innerRef.current, start, end),
     }),
     []
   );

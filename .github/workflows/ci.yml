@@ -53,3 +53,45 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             -quiet \
             build
+
+  consumer:
+    name: Consumer bundle
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+
+      # `prepare` builds `build/` as part of packing.
+      - run: npm pack
+
+      # The example resolves the library to `src`, so it can never catch a fault
+      # in what is actually published — 0.1.0 shipped unbundlable because of
+      # exactly that. This installs the tarball the way a user would.
+      - name: Bundle a plain consumer against the packed tarball
+        run: |
+          mkdir -p "$RUNNER_TEMP/consumer"
+          cp -R example/App.tsx example/index.ts example/app.json example/tsconfig.json example/assets \
+            "$RUNNER_TEMP/consumer/"
+          node -e "
+            const fs = require('fs');
+            const tgz = fs.readdirSync('.').find(f => f.endsWith('.tgz'));
+            const pkg = JSON.parse(fs.readFileSync('example/package.json', 'utf8'));
+            pkg.name = 'consumer';
+            pkg.dependencies['react-native-ime-text-input'] = 'file:' + process.cwd() + '/' + tgz;
+            fs.writeFileSync(process.env.RUNNER_TEMP + '/consumer/package.json', JSON.stringify(pkg, null, 2));
+          "
+          cd "$RUNNER_TEMP/consumer"
+          npm install --no-audit --no-fund
+          npx expo export:embed \
+            --platform ios \
+            --entry-file index.ts \
+            --bundle-output "$RUNNER_TEMP/consumer.jsbundle" \
+            --dev false
+
+      # Bundling can succeed while the codegen view config is missing entirely.
+      - name: Check the native view config reached the bundle
+        run: grep -q textRevision "$RUNNER_TEMP/consumer.jsbundle"

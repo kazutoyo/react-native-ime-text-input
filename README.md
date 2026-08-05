@@ -27,7 +27,7 @@ Only iOS is replaced, so the other platforms keep React Native's behaviour exact
 
 ## Install
 
-Requires **React Native 0.86+ with the New Architecture**. The package ships native code, so it needs a real build and does not run in Expo Go.
+Requires **React Native 0.85+ with the New Architecture**. The package ships native code, so it needs a real build and does not run in Expo Go.
 
 ```sh
 # bare React Native
@@ -111,7 +111,9 @@ Passing one on iOS ignores the value and warns once per prop name in `__DEV__`.
 | `ref.isFocused()` | Queries the native view | Tracked in JavaScript from focus/blur events |
 | `onEndEditing` | Fires when editing ends | Fires on blur, which is when UIKit reports it |
 
-Unchanged, because these are what a replacement usually gets wrong: there is no extra view in the tree — the component *is* the native view, so `flex`, `margin` and sibling layout behave exactly as before; `multiline` self-sizing matches React Native's, through the same mechanism; and Android and web are React Native's `TextInput` verbatim.
+Unchanged, because these are what a replacement usually gets wrong: there is no extra view in the tree — the component *is* the native view, so `flex`, `margin` and sibling layout behave exactly as before; and `multiline` self-sizing matches React Native's, through the same mechanism.
+
+Android and web render React Native's `TextInput` unchanged. The one piece of library code there is the ref wrapper, so `TextInputRef` is the only place those platforms can diverge — on web, `setSelection()` falls through to the DOM's `setSelectionRange`, because react-native-web's ref exposes only `clear` and `isFocused`.
 
 ## How it works
 
@@ -127,7 +129,9 @@ Checked on an iPhone 17 Pro simulator (iOS 26.5, React Native 0.86.2) with the J
 - A `multiline` field grows 20 → 61 → 81 → 122px with its content and stops at `maxHeight`
 - Fields laid out off-screen in a `ScrollView` render and hit-test in the right place
 
-Platform resolution is verified by bundling: the Android bundle contains `src/TextInput.tsx` and zero references to the native component. Android and web therefore run React Native's `TextInput` verbatim — but they have not been exercised on a device.
+Also verified in a production app on React Native 0.85.3 / Expo SDK 56 — composition underline, `ref.setSelection()`, multiline resizing, `selection` / `onSelectionChange` / `cursorColor` / `selectionColor`.
+
+Platform resolution is verified by bundling: the Android bundle contains `src/TextInput.tsx` and zero references to the native component, and CI bundles a plain consumer app against the packed tarball so the published layout is exercised, not just the example's aliased one. Android has not been run on a device.
 
 ## Development
 

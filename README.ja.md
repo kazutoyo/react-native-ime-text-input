@@ -28,7 +28,7 @@ New Architecture の iOS では、**日本語・中国語・韓国語の未確�
 
 ## インストール
 
-**React Native 0.86 以降 + New Architecture** が必要です。ネイティブコードを含むため、Expo Go では動きません（development build が必要です）。
+**React Native 0.85 以降 + New Architecture** が必要です。ネイティブコードを含むため、Expo Go では動きません（development build が必要です）。
 
 ```sh
 # bare React Native
@@ -115,7 +115,9 @@ React Native の `TextInput` が変換中に書き込みを行い、変換を打
 | `ref.isFocused()` | ネイティブビューに問い合わせる | focus / blur イベントから JavaScript 側で追跡 |
 | `onEndEditing` | 編集終了時に発火 | blur 時に発火（UIKit が編集終了を伝えてくるのがこのタイミングのため） |
 
-置き換え実装が壊しがちな点は、そのまま維持しています。ツリーに余分な View は入らないので（コンポーネント自体がネイティブビューです）、`flex` / `margin` / 兄弟要素のレイアウトは従来通りです。`multiline` の自動サイズも React Native と同じ仕組みで同じように動きます。Android と web は React Native の `TextInput` そのものです。
+置き換え実装が壊しがちな点は、そのまま維持しています。ツリーに余分な View は入らないので（コンポーネント自体がネイティブビューです）、`flex` / `margin` / 兄弟要素のレイアウトは従来通りです。`multiline` の自動サイズも React Native と同じ仕組みで同じように動きます。
+
+Android と web は React Native の `TextInput` をそのまま描画します。唯一ライブラリ自身のコードなのが ref のラッパーで、`TextInputRef` だけがこの2つのプラットフォームで乖離しうる箇所です。web では react-native-web の ref が `clear` と `isFocused` しか持たないため、`setSelection()` は DOM の `setSelectionRange` に落ちます。
 
 ## 仕組み
 
@@ -131,7 +133,9 @@ iPhone 17 Pro シミュレータ（iOS 26.5 / React Native 0.86.2）と日本語
 - `multiline` が内容に応じて 20 → 61 → 81 → 122px と伸び、`maxHeight` で止まる
 - `ScrollView` 内で画面外にレイアウトされた入力欄が、正しい位置に描画されタップに反応する
 
-プラットフォームごとのファイル解決はバンドルで確認しています。Android バンドルには `src/TextInput.tsx` が含まれ、ネイティブコンポーネントへの参照は0件です。したがって Android と web は React Native の `TextInput` そのものですが、実機での動作確認はしていません。
+React Native 0.85.3 / Expo SDK 56 の実アプリでも確認されています（変換下線、`ref.setSelection()`、multiline の自動リサイズ、`selection` / `onSelectionChange` / `cursorColor` / `selectionColor`）。
+
+プラットフォームごとのファイル解決はバンドルで確認しています。Android バンドルには `src/TextInput.tsx` が含まれ、ネイティブコンポーネントへの参照は0件です。また CI が、pack した tarball を素の consumer アプリに install してバンドルするので、example の alias 経由ではなく publish される形が検証されます。Android は実機での動作確認をしていません。
 
 ## 開発
 

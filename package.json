@@ -1,6 +1,6 @@
 {
   "name": "react-native-ime-text-input",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Drop-in replacement for React Native's TextInput, backed directly by UIKit on iOS, restoring the Japanese/CJK IME composition underline that Fabric drops.",
   "keywords": [
     "react-native",
@@ -17,6 +17,7 @@
     "example"
   ],
   "main": "build/index.js",
+  "react-native": "./src/index.ts",
   "types": "build/index.d.ts",
   "files": [
     "build",
@@ -48,7 +49,7 @@
   },
   "peerDependencies": {
     "react": ">=19.0.0",
-    "react-native": ">=0.86.0"
+    "react-native": ">=0.85.0"
   },
   "devDependencies": {
     "@types/jest": "^29.5.14",
