@@ -22,13 +22,17 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 24
-          registry-url: https://registry.npmjs.org
           cache: npm
+          # No `registry-url`: it makes setup-node write an .npmrc with
+          # `_authToken=${NODE_AUTH_TOKEN}`, and with trusted publishing there is
+          # no such token. npm then authenticates with an empty one and the
+          # registry answers 404 — its response for "not authorised" — instead of
+          # falling back to OIDC.
 
       # Trusted publishing needs npm 11.5.1+; the runner ships npm 11.x. Pinned
       # rather than `@latest`: this runs in the job that holds the OIDC token.
       # npm 12 needs Node ^24.15.0, which `node-version: 24` above resolves to.
-      - run: npm install -g npm@12.0.2
+      - run: npm install -g npm@12.0.2 && npm --version
 
       - run: npm ci
 
