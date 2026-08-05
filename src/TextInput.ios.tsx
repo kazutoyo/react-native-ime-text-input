@@ -1,6 +1,7 @@
 import { useEffect, useImperativeHandle, useReducer, useRef } from 'react';
 import { StyleSheet, type TextStyle } from 'react-native';
 
+import { ARIA_PROPS, mapAriaProps } from './aria';
 import RNImeTextInputNativeComponent, {
   Commands,
   type RNImeTextInputViewType,
@@ -21,19 +22,19 @@ function syntheticEvent<T>(nativeEvent: T) {
   return { nativeEvent } as never;
 }
 
-const UNSUPPORTED_SET: ReadonlySet<string> = new Set(UNSUPPORTED_PROPS);
-
 /**
- * Drops the props that do nothing on iOS.
+ * Props that must not reach the native view as they are.
  *
- * They stay in the public type because Android and web honour them, so they
- * reach this component and have to be filtered out before the rest is spread
- * onto the native view.
+ * `UNSUPPORTED_PROPS` do nothing on iOS but stay in the public type because
+ * Android and web honour them. `ARIA_PROPS` are rewritten by `mapAriaProps`
+ * into the names the view knows, so the originals would be dead weight.
  */
-function withoutUnsupported(rest: Record<string, unknown>): Record<string, unknown> {
+const NOT_FORWARDED: ReadonlySet<string> = new Set<string>([...UNSUPPORTED_PROPS, ...ARIA_PROPS]);
+
+function forwardable(rest: Record<string, unknown>): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(rest)) {
-    if (!UNSUPPORTED_SET.has(key)) {
+    if (!NOT_FORWARDED.has(key)) {
       out[key] = value;
     }
   }
@@ -229,7 +230,8 @@ export function TextInput(props: TextInputProps) {
 
   return (
     <RNImeTextInputNativeComponent
-      {...withoutUnsupported(rest as Record<string, unknown>)}
+      {...forwardable(rest as Record<string, unknown>)}
+      {...mapAriaProps(props as Record<string, unknown>)}
       ref={nativeRef}
       style={viewStyle}
       // `value` is what makes the field controlled; without it the revision
