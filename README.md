@@ -142,12 +142,20 @@ npm run typecheck
 npm run build
 
 cd example && npx expo run:ios
-npm run test:e2e   # Maestro flows against that build
+npm run test:native  # XCTest, through the pod's test spec
+npm run test:e2e     # Maestro flows against that build
 ```
 
 `npm test` covers the pure functions and, mirroring React Native's own
 `TextInput-itest.js`, what the adapter sends to the native view and which
 commands it dispatches.
+
+`npm run test:native` runs the XCTest bundle CocoaPods builds from the
+podspec's test spec. It covers the attribute dictionary — including the no-op
+`NSShadow` and transparent `NSBackgroundColor` that stop UIKit drawing the
+underline — and the marked-text rules themselves: a conversion is staged with
+`setMarkedText:selectedRange:`, the same call the keyboard makes, so composition
+can be asserted without one.
 
 `npm run test:e2e` drives the example app on a booted simulator. It covers
 focus, typing, the controlled revert, `maxLength` and self-sizing — **not the

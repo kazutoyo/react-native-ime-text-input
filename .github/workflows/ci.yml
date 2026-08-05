@@ -54,6 +54,23 @@ jobs:
             -quiet \
             build
 
+      # The attribute dictionary and the marked-text rules have no JavaScript
+      # above them, so this is the only place they are checked at all.
+      - name: Native unit tests
+        working-directory: example/ios
+        run: |
+          udid=$(xcrun simctl list devices available -j | python3 -c "
+          import json, sys
+          devices = json.load(sys.stdin)['devices']
+          print(next(d['udid'] for runtime in devices.values() for d in runtime if 'iPhone' in d['name']))
+          ")
+          xcodebuild test \
+            -workspace example.xcworkspace \
+            -scheme RNImeTextInput \
+            -destination "platform=iOS Simulator,id=$udid" \
+            CODE_SIGNING_ALLOWED=NO \
+            -quiet
+
   consumer:
     name: Consumer bundle
     runs-on: ubuntu-latest

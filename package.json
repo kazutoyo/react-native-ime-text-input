@@ -36,6 +36,7 @@
     "prepare": "npm run clean && npm run build",
     "test": "jest",
     "test:e2e": "maestro test .maestro/",
+    "test:native": "cd example/ios && xcodebuild test -workspace example.xcworkspace -scheme RNImeTextInput -destination 'platform=iOS Simulator,name=iPhone 17 Pro' CODE_SIGNING_ALLOWED=NO",
     "typecheck": "tsc --noEmit"
   },
   "codegenConfig": {

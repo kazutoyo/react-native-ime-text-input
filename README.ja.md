@@ -146,11 +146,18 @@ npm run typecheck
 npm run build
 
 cd example && npx expo run:ios
-npm run test:e2e   # そのビルドに対して Maestro を実行
+npm run test:native  # podspec の test spec 経由で XCTest を実行
+npm run test:e2e     # そのビルドに対して Maestro を実行
 ```
 
 `npm test` は純関数に加えて、React Native 自身の `TextInput-itest.js` と同じ
 観点で、アダプタがネイティブビューに渡す props と発行するコマンドを検証します。
+
+`npm run test:native` は、podspec の test spec から CocoaPods が生成する
+XCTest バンドルを実行します。属性辞書（UIKit が下線描画をやめる原因である
+no-op な `NSShadow` と透明な `NSBackgroundColor` を含む）と、marked text の
+ルールそのものが対象です。変換は `setMarkedText:selectedRange:`（キーボード
+自身が呼ぶのと同じ API）で再現するので、日本語キーボードなしで検証できます。
 
 `npm run test:e2e` は起動中のシミュレータで example アプリを操作します。
 フォーカス・入力・controlled の巻き戻し・`maxLength`・自動リサイズが対象で、
