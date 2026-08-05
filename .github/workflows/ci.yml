@@ -95,11 +95,17 @@ jobs:
             "$RUNNER_TEMP/consumer/"
           node -e "
             const fs = require('fs');
+            const out = process.env.RUNNER_TEMP + '/consumer/';
             const tgz = fs.readdirSync('.').find(f => f.endsWith('.tgz'));
             const pkg = JSON.parse(fs.readFileSync('example/package.json', 'utf8'));
             pkg.name = 'consumer';
             pkg.dependencies['react-native-ime-text-input'] = 'file:' + process.cwd() + '/' + tgz;
-            fs.writeFileSync(process.env.RUNNER_TEMP + '/consumer/package.json', JSON.stringify(pkg, null, 2));
+            fs.writeFileSync(out + 'package.json', JSON.stringify(pkg, null, 2));
+            // The example's config plugin only exists to generate the pod's test
+            // target; a plain consumer neither has it nor needs it.
+            const app = JSON.parse(fs.readFileSync('example/app.json', 'utf8'));
+            delete app.expo.plugins;
+            fs.writeFileSync(out + 'app.json', JSON.stringify(app, null, 2));
           "
           cd "$RUNNER_TEMP/consumer"
           npm install --no-audit --no-fund
