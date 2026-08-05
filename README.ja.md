@@ -28,7 +28,7 @@ New Architecture の iOS では、**日本語・中国語・韓国語の未確�
 
 ## インストール
 
-**React Native 0.85 以降 + New Architecture** が必要です。ネイティブコードを含むため、Expo Go では動きません（development build が必要です）。
+**React Native 0.81 以降 + New Architecture** が必要です。ネイティブコードを含むため、Expo Go では動きません（development build が必要です）。
 
 ```sh
 # bare React Native
@@ -132,6 +132,12 @@ iPhone 17 Pro シミュレータ（iOS 26.5 / React Native 0.86.2）と日本語
 - `focus()` / `clear()` / `maxLength` / テキスト属性がドキュメント通りに動く
 - `multiline` が内容に応じて 20 → 61 → 81 → 122px と伸び、`maxHeight` で止まる
 - `ScrollView` 内で画面外にレイアウトされた入力欄が、正しい位置に描画されタップに反応する
+
+対応範囲の下限である React Native 0.81.6 / Expo SDK 54 でも確認しています。
+codegen の view config が生成され、pod がビルドでき、ネイティブテストが通ります。
+0.81 が下限なのは、`CodegenTypes` を名前空間として codegen が解釈できるように
+なったのが 0.80、公開の型として出たのが 0.81 のためで、それ以前ではこの
+コンポーネント spec を今の書き方で表現できません。
 
 React Native 0.85.3 / Expo SDK 56 の実アプリでも確認されています（変換下線、`ref.setSelection()`、multiline の自動リサイズ、`selection` / `onSelectionChange` / `cursorColor` / `selectionColor`）。
 

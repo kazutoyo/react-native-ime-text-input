@@ -27,7 +27,7 @@ Only iOS is replaced, so the other platforms keep React Native's behaviour exact
 
 ## Install
 
-Requires **React Native 0.85+ with the New Architecture**. The package ships native code, so it needs a real build and does not run in Expo Go.
+Requires **React Native 0.81+ with the New Architecture**. The package ships native code, so it needs a real build and does not run in Expo Go.
 
 ```sh
 # bare React Native
@@ -128,6 +128,12 @@ Checked on an iPhone 17 Pro simulator (iOS 26.5, React Native 0.86.2) with the J
 - `focus()` / `clear()` / `maxLength` / text attributes behave as documented
 - A `multiline` field grows 20 → 61 → 81 → 122px with its content and stops at `maxHeight`
 - Fields laid out off-screen in a `ScrollView` render and hit-test in the right place
+
+Verified again on React Native 0.81.6 / Expo SDK 54, the floor of the supported
+range: the codegen view config is generated, the pod builds, and the native
+tests pass. 0.81 is the floor because `CodegenTypes` only became a namespace
+React Native's codegen understands in 0.80, and only reached its public types in
+0.81; below that the component spec cannot be expressed as it is written here.
 
 Also verified in a production app on React Native 0.85.3 / Expo SDK 56 — composition underline, `ref.setSelection()`, multiline resizing, `selection` / `onSelectionChange` / `cursorColor` / `selectionColor`.
 
