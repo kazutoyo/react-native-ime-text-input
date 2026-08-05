@@ -137,12 +137,23 @@ Platform resolution is verified by bundling: the Android bundle contains `src/Te
 
 ```sh
 npm install        # library + example app (npm workspaces)
-npm test
+npm test           # unit and component tests
 npm run typecheck
 npm run build
 
 cd example && npx expo run:ios
+npm run test:e2e   # Maestro flows against that build
 ```
+
+`npm test` covers the pure functions and, mirroring React Native's own
+`TextInput-itest.js`, what the adapter sends to the native view and which
+commands it dispatches.
+
+`npm run test:e2e` drives the example app on a booted simulator. It covers
+focus, typing, the controlled revert, `maxLength` and self-sizing — **not the
+composition underline**, which is the one thing it cannot reach: Maestro's
+`inputText` bypasses the IME, so conversion has to be checked by hand with a
+Japanese keyboard.
 
 The example resolves `react-native-ime-text-input` straight to `src` (see `example/metro.config.js`), so JavaScript edits appear without a rebuild. Native changes — or changes to the codegen spec — need `npx expo run:ios` again.
 

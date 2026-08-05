@@ -1,0 +1,12 @@
+# The ordinary controlled pattern: what the user types comes back through
+# `value`, so the echo below the field has to match it exactly.
+appId: com.kazutoyo-tokai-tn.example
+---
+- launchApp:
+    clearState: true
+- tapOn:
+    id: 'controlled'
+- inputText: 'hello'
+- tapOn:
+    text: 'react-native-ime-text-input'
+- assertVisible: 'value: "hello"'

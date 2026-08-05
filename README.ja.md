@@ -141,12 +141,21 @@ React Native 0.85.3 / Expo SDK 56 の実アプリでも確認されています�
 
 ```sh
 npm install        # ライブラリ + example アプリ（npm workspaces）
-npm test
+npm test           # ユニットテストとコンポーネントテスト
 npm run typecheck
 npm run build
 
 cd example && npx expo run:ios
+npm run test:e2e   # そのビルドに対して Maestro を実行
 ```
+
+`npm test` は純関数に加えて、React Native 自身の `TextInput-itest.js` と同じ
+観点で、アダプタがネイティブビューに渡す props と発行するコマンドを検証します。
+
+`npm run test:e2e` は起動中のシミュレータで example アプリを操作します。
+フォーカス・入力・controlled の巻き戻し・`maxLength`・自動リサイズが対象で、
+**変換下線だけは対象外**です。Maestro の `inputText` は IME を経由しないため、
+変換の確認は日本語キーボードで手動で行う必要があります。
 
 example は `react-native-ime-text-input` を直接 `src` に解決します（`example/metro.config.js`）。JavaScript の変更は再ビルドなしで反映されます。ネイティブと codegen spec の変更は `npx expo run:ios` をやり直す必要があります。
 

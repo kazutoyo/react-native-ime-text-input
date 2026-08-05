@@ -1,0 +1,15 @@
+# maxLength is enforced natively at a composed-character boundary. Typing past
+# the limit must leave exactly the first five characters.
+appId: com.kazutoyo-tokai-tn.example
+---
+- launchApp:
+    clearState: true
+- scrollUntilVisible:
+    element:
+      id: 'max-length'
+- tapOn:
+    id: 'max-length'
+- inputText: 'abcdefgh'
+- tapOn:
+    text: '5. secureTextEntry / maxLength=5'
+- assertVisible: '"abcde"'

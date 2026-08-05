@@ -1,0 +1,14 @@
+# The chat composer. The field sizes itself from Fabric state, so the send row
+# below it must stay on screen as the text grows past one line.
+appId: com.kazutoyo-tokai-tn.example
+---
+- launchApp:
+    clearState: true
+- tapOn:
+    id: 'composer'
+- inputText: 'a message long enough to wrap onto more than a single line'
+- assertVisible: '58 chars'
+- assertVisible: 'send'
+- tapOn:
+    text: 'send'
+- assertVisible: '0 chars'

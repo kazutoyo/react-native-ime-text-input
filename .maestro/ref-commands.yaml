@@ -1,0 +1,25 @@
+# The imperative handle. `clear()` empties the field and — unlike React Native —
+# fires onChangeText, so the parent's echo has to follow it to empty.
+#
+# Focus is asserted through the keyboard rather than a `focused: true` selector:
+# that selector reports XCUITest's own notion of keyboard focus, which a custom
+# UIKit input does not populate the way a native text field does.
+appId: com.kazutoyo-tokai-tn.example
+---
+- launchApp:
+    clearState: true
+- scrollUntilVisible:
+    element:
+      id: 'uncontrolled'
+- assertVisible: 'value: "hello"'
+- tapOn:
+    text: 'clear'
+- assertVisible: 'value: ""'
+- tapOn:
+    text: 'focus'
+- assertVisible:
+    id: 'space'
+- tapOn:
+    text: 'blur'
+- assertNotVisible:
+    id: 'space'

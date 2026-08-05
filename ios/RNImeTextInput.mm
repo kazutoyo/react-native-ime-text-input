@@ -215,6 +215,24 @@ static UIKeyboardAppearance RNImeTextInputKeyboardAppearance(const std::string &
 }
 
 /**
+ The view every accessibility prop is applied to.
+
+ `RCTViewComponentView` writes `testID`, `accessibilityLabel`, traits and the
+ rest onto `self.accessibilityElement`, which defaults to `self`. That host view
+ is not what VoiceOver or an automation driver sees — the text view inside it is
+ — so without this override `testID` never becomes an
+ `accessibilityIdentifier` anything can find, and Maestro, Detox and XCUITest
+ cannot target the field at all.
+
+ SYNC: React Native's own `RCTTextInputComponentView` overrides this the same
+ way, returning its `_backedTextInputView`.
+ */
+- (NSObject *)accessibilityElement
+{
+  return self.input ?: self;
+}
+
+/**
  Swaps the backing view when `multiline` changes, carrying the text and every
  applied prop across so the switch is invisible from JavaScript.
  */

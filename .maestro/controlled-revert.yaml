@@ -1,0 +1,19 @@
+# A parent that refuses every edit. React Native reverts the field, and so must
+# this one — the text stays `locked` however much is typed, while the parent
+# still sees the attempt.
+appId: com.kazutoyo-tokai-tn.example
+---
+- launchApp:
+    clearState: true
+- scrollUntilVisible:
+    element:
+      id: 'refusing'
+- tapOn:
+    id: 'refusing'
+- inputText: 'x'
+- tapOn:
+    text: 'react-native-ime-text-input'
+- assertVisible:
+    id: 'refusing'
+    text: 'locked'
+- assertVisible: 'rejected edits: 1'
