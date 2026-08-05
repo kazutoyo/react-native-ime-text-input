@@ -1,0 +1,44 @@
+name: Release
+
+# Publishes to npm when a version tag is pushed. The tag has no `v` prefix
+# because `RNImeTextInput.podspec` resolves its source tag from the package
+# version verbatim.
+on:
+  push:
+    tags: ['[0-9]*.[0-9]*.[0-9]*']
+
+jobs:
+  publish:
+    name: Publish to npm
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # trusted publishing — no NPM_TOKEN, and npm attaches provenance
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+          cache: npm
+
+      # Trusted publishing needs npm 11.5.1+; Node 22 ships npm 10.
+      - run: npm install -g npm@latest
+
+      - run: npm ci
+
+      # A version can never be republished, so refuse a tag that disagrees with
+      # package.json rather than burning the number.
+      - name: Check the tag matches package.json
+        run: |
+          pkg=$(node -p "require('./package.json').version")
+          if [ "$GITHUB_REF_NAME" != "$pkg" ]; then
+            echo "tag $GITHUB_REF_NAME does not match package.json version $pkg"
+            exit 1
+          fi
+
+      - run: npm test
+      - run: npm run typecheck
+
+      # `prepare` rebuilds `build/` from scratch as part of publishing.
+      - run: npm publish

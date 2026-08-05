@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  javascript:
+    name: JavaScript
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run typecheck
+      # Typechecks the example against `src`, which is what catches a prop that
+      # was added to the native spec but never wired through `TextInput.ios.tsx`.
+      - run: npx tsc --noEmit
+        working-directory: example
+      - run: npm run build
+
+  ios:
+    name: iOS build
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      # Regenerates the native project so codegen runs from the spec — the only
+      # way a mismatch between the spec and `RNImeTextInput.mm` shows up.
+      - run: npx expo prebuild --platform ios --clean
+        working-directory: example
+
+      - name: Build
+        working-directory: example/ios
+        run: |
+          xcodebuild \
+            -workspace example.xcworkspace \
+            -scheme example \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO \
+            build \
+            | xcpretty || exit ${PIPESTATUS[0]}

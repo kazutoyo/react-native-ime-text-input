@@ -1,0 +1,11 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "paths": {
+      // Match what metro.config.js resolves at runtime, so types and behaviour
+      // come from the same files and library edits need no rebuild.
+      "react-native-ime-text-input": ["../src/index.ts"]
+    }
+  }
+}

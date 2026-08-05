@@ -1,0 +1,74 @@
+{
+  "name": "react-native-ime-text-input",
+  "version": "0.1.0",
+  "description": "Drop-in replacement for React Native's TextInput, backed directly by UIKit on iOS, restoring the Japanese/CJK IME composition underline that Fabric drops.",
+  "keywords": [
+    "react-native",
+    "textinput",
+    "ime",
+    "japanese",
+    "cjk",
+    "fabric",
+    "uikit"
+  ],
+  "license": "MIT",
+  "author": "Kazutoyo Tokai <kazutoyo.jp@gmail.com>",
+  "workspaces": [
+    "example"
+  ],
+  "main": "build/index.js",
+  "types": "build/index.d.ts",
+  "files": [
+    "build",
+    "src",
+    "ios",
+    "*.podspec",
+    "react-native.config.js",
+    "README.md",
+    "README.ja.md",
+    "!ios/build",
+    "!src/**/__tests__"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf build",
+    "prepare": "npm run clean && npm run build",
+    "test": "jest",
+    "typecheck": "tsc --noEmit"
+  },
+  "codegenConfig": {
+    "name": "RNImeTextInputSpec",
+    "type": "components",
+    "jsSrcsDir": "src",
+    "ios": {
+      "componentProvider": {
+        "RNImeTextInput": "RNImeTextInput"
+      }
+    }
+  },
+  "peerDependencies": {
+    "react": ">=19.0.0",
+    "react-native": ">=0.86.0"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.14",
+    "@types/react": "~19.2.2",
+    "jest": "^29.7.0",
+    "jest-expo": "~57.0.3",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-native": "0.86.2",
+    "typescript": "~6.0.3"
+  },
+  "jest": {
+    "preset": "jest-expo",
+    "testMatch": [
+      "<rootDir>/src/**/__tests__/**/*.test.ts?(x)"
+    ]
+  },
+  "homepage": "https://github.com/kazutoyo/react-native-ime-text-input",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kazutoyo/react-native-ime-text-input.git"
+  }
+}
