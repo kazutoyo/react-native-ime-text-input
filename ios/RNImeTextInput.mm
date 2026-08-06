@@ -742,14 +742,26 @@ static UIKeyboardAppearance RNImeTextInputKeyboardAppearance(const std::string &
  be dismissed from the keyboard — React Native adds the same toolbar for the
  same reason (`RCTTextInputComponentView`'s `setDefaultInputAccessoryView`).
 
- An `inputAccessoryViewID` takes the slot instead, and this leaves it alone
- entirely: the `InputAccessoryView` component assigns itself directly to the
- UIKit view, so writing here — even a nil — would take the accessory content
- back off on the next prop update.
+ An `inputAccessoryViewID` takes the slot instead. What is in the slot then is
+ not ours to write: the `InputAccessoryView` component assigns itself directly
+ to the UIKit view, so writing here — even a nil — would take the accessory
+ content back off on the next prop update. A toolbar *this* class drew earlier
+ is the exception; leaving it would show the wrong bar until the component
+ claims the slot, and forever if none ever does.
  */
 - (void)applyDefaultInputAccessoryView
 {
   if (_accessoryViewID.length > 0) {
+    // A title is only held while a toolbar of ours is attached, so it is what
+    // separates the two cases.
+    if (_accessoryButtonTitle != nil) {
+      _accessoryButtonTitle = nil;
+      _textView.inputAccessoryView = nil;
+      _textField.inputAccessoryView = nil;
+      if ([self input].isFirstResponder) {
+        [[self input] reloadInputViews];
+      }
+    }
     return;
   }
 

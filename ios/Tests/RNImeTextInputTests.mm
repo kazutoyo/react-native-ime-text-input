@@ -660,6 +660,23 @@ struct TestProps {
   XCTAssertEqualObjects(((UITextView *)[_view input]).inputAccessoryView, content);
 }
 
+- (void)testAToolbarThisFieldDrewIsTakenBackOffWhenAnIDArrives
+{
+  [self applyProps:^(TestProps &props) {
+    props.keyboardType = "number-pad";
+    props.returnKeyType = "done";
+  }];
+  XCTAssertNotNil([[_view input] inputAccessoryView], @"there was no toolbar to take off");
+
+  [self applyProps:^(TestProps &props) {
+    props.inputAccessoryViewID = "composer";
+  }];
+
+  // Stepping aside for an `InputAccessoryView` means leaving *its* accessory
+  // alone, not leaving a toolbar of ours in the slot it is about to claim.
+  XCTAssertNil([[_view input] inputAccessoryView]);
+}
+
 - (void)testAnAccessoryViewAssignedFromOutsideSurvivesSwitchingBackingViews
 {
   [self applyProps:^(TestProps &props) {

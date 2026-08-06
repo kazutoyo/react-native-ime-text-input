@@ -28,7 +28,8 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   walks the window for a view answering to `inputAccessoryViewID` and
   `setInputAccessoryView:` and assigns itself, so carrying the id is the whole
   contract. When one is set, the default number-pad toolbar steps aside rather
-  than taking the slot from the accessory content.
+  than taking the slot from the accessory content — and a toolbar drawn before
+  the id arrived is taken back off, so the wrong bar is never left behind.
 
 ### Fixed
 
