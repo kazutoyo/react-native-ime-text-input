@@ -158,6 +158,14 @@ export function TextInput(props: TextInputProps) {
     enablesReturnKeyAutomatically,
     autoComplete,
     textContentType,
+    clearButtonMode,
+    passwordRules,
+    smartInsertDelete,
+    contextMenuHidden,
+    inputAccessoryViewButtonLabel,
+    inputAccessoryViewID,
+    allowFontScaling,
+    maxFontSizeMultiplier,
     textAlign,
     testID,
     ...rest
@@ -250,6 +258,7 @@ export function TextInput(props: TextInputProps) {
       clearTextOnFocus={clearTextOnFocus ?? false}
       submitBehavior={str(submitBehavior)}
       caretHidden={caretHidden ?? false}
+      contextMenuHidden={contextMenuHidden ?? false}
       selectionColor={selectionColor ?? undefined}
       keyboardType={str(keyboardType ?? (inputMode ? INPUT_MODE_TO_KEYBOARD_TYPE[inputMode] : undefined))}
       returnKeyType={str(
@@ -263,7 +272,22 @@ export function TextInput(props: TextInputProps) {
       textContentType={str(
         textContentType ?? (autoComplete ? AUTO_COMPLETE_TO_TEXT_CONTENT_TYPE[autoComplete] : undefined)
       )}
+      clearButtonMode={str(clearButtonMode)}
+      inputAccessoryViewButtonLabel={str(inputAccessoryViewButtonLabel)}
+      inputAccessoryViewID={str(inputAccessoryViewID)}
+      passwordRules={str(passwordRules)}
+      // Tri-state for the same reason as `spellCheck`: UIKit's default is not
+      // the same as an explicit "yes", and a bare boolean cannot say "not set".
+      smartInsertDelete={
+        smartInsertDelete === undefined ? 'auto' : smartInsertDelete ? 'yes' : 'no'
+      }
       textAlign={str(textAlign ?? textStyle.textAlign)}
+      // React Native's default is `true`: text follows the system text size
+      // setting unless a component opts out.
+      allowFontScaling={allowFontScaling ?? true}
+      // 0 means no cap, matching React Native — anything below 1 is ignored
+      // natively rather than shrinking the text.
+      maxFontSizeMultiplier={maxFontSizeMultiplier ?? 0}
       fontSize={textStyle.fontSize ?? 17}
       fontWeight={str(textStyle.fontWeight)}
       fontFamily={str(textStyle.fontFamily)}

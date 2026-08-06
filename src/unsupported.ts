@@ -1,28 +1,38 @@
 /**
- * React Native `TextInput` props that have no effect **on iOS**, because UIKit
- * exposes no equivalent on a text input.
+ * React Native `TextInput` props that have no effect **on iOS** here.
  *
- * They stay in the prop type: only iOS is replaced, and on Android and web
- * React Native's own `TextInput` honours them. Removing them from the type
- * would break a cross-platform component over a prop that is valid on the
+ * Two different reasons are mixed together, and the distinction matters when
+ * deciding what to implement next:
+ *
+ * - React Native's own iOS implementation ignores them too, so nothing is lost
+ *   relative to it: the Android-only ones (`disableFullscreenUI`,
+ *   `importantForAutofill`, `inlineImageLeft`, `inlineImagePadding`,
+ *   `returnKeyLabel`, `textBreakStrategy`, `underlineColorAndroid`), plus
+ *   `blurOnSubmit`, which is React Native's own deprecated alias for
+ *   `submitBehavior`.
+ * - Simply not implemented here yet, though React Native core implements them
+ *   on iOS: `dataDetectorTypes`, `lineBreakStrategyIOS`, `onScroll`,
+ *   `rejectResponderTermination`, `scrollEnabled` and `showSoftInputOnFocus`.
+ *   `showSoftInputOnFocus` is worth singling out because React Native's *types*
+ *   put it under Android — its Fabric iOS view implements it anyway, by
+ *   swapping `inputView` for an empty one.
+ *
+ * They stay in the prop type either way: only iOS is replaced, and on Android
+ * and web React Native's own `TextInput` honours them. Removing them from the
+ * type would break a cross-platform component over a prop that is valid on the
  * platform it targets. The iOS implementation warns instead.
  *
  * Listed explicitly rather than inferred, so a prop React Native adds later is
  * passed through quietly instead of being flagged as broken.
  */
 export const UNSUPPORTED_PROPS = [
-  'allowFontScaling',
   'blurOnSubmit',
-  'clearButtonMode',
-  'contextMenuHidden',
   'dataDetectorTypes',
   'disableFullscreenUI',
   'importantForAutofill',
   'inlineImageLeft',
   'inlineImagePadding',
-  'inputAccessoryViewID',
   'lineBreakStrategyIOS',
-  'maxFontSizeMultiplier',
   'onScroll',
   'rejectResponderTermination',
   'returnKeyLabel',
@@ -88,8 +98,8 @@ export function warnUnsupported(kind: UnsupportedKind, names: readonly string[])
 
     console.warn(
       `react-native-ime-text-input: the \`${name}\` ${DESCRIPTIONS[kind]} has no effect on iOS ` +
-        'and was ignored — UIKit exposes no equivalent on a text input. ' +
-        'It still works on Android and web, which render React Native\'s own TextInput.'
+        'and was ignored. It still works on Android and web, which render ' +
+        "React Native's own TextInput."
     );
   }
 }

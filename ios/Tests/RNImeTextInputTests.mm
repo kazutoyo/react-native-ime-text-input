@@ -17,6 +17,9 @@ using namespace facebook::react;
 - (void)setTextValue:(NSString *)newValue fromJS:(BOOL)fromJS;
 - (void)handleTextChanged;
 - (void)enforceMaxLength;
+- (CGFloat)fontSizeMultiplierForContentSizeCategory:(UIContentSizeCategory)category;
+- (CGFloat)effectiveFontSizeMultiplierForBase:(CGFloat)base;
+- (void)contentSizeCategoryDidChange;
 @end
 
 /**
@@ -47,12 +50,25 @@ struct TestProps {
   double lineHeight = 0;
   double letterSpacing = 0;
   std::string textDecorationLine;
+  std::string smartInsertDelete;
+  std::string passwordRules;
+  std::string clearButtonMode;
+  bool contextMenuHidden = false;
+  std::string keyboardType;
+  std::string returnKeyType;
+  std::string submitBehavior;
+  std::string inputAccessoryViewButtonLabel;
+  bool allowFontScaling = true;
+  double maxFontSizeMultiplier = 0;
+  std::string inputAccessoryViewID;
 };
 
 @implementation RNImeTextInputTests {
   RNImeTextInput *_view;
   TestProps _values;
   std::shared_ptr<const RNImeTextInputProps> _props;
+  /// Only set by the tests that need a live responder; see `activateWithText:`.
+  UIWindow *_window;
 }
 
 - (void)setUp
@@ -63,6 +79,16 @@ struct TestProps {
   _props = nullptr;
   [self applyProps:^(TestProps &values) {
   }];
+}
+
+- (void)tearDown
+{
+  // A key window outliving its test would keep the next test's field from
+  // becoming first responder.
+  [[_view input] resignFirstResponder];
+  _window.hidden = YES;
+  _window = nil;
+  [super tearDown];
 }
 
 /** Pushes a prop change through the same path the mounting layer uses. */
@@ -80,6 +106,17 @@ struct TestProps {
   next->lineHeight = _values.lineHeight;
   next->letterSpacing = _values.letterSpacing;
   next->textDecorationLine = _values.textDecorationLine;
+  next->smartInsertDelete = _values.smartInsertDelete;
+  next->passwordRules = _values.passwordRules;
+  next->clearButtonMode = _values.clearButtonMode;
+  next->contextMenuHidden = _values.contextMenuHidden;
+  next->keyboardType = _values.keyboardType;
+  next->returnKeyType = _values.returnKeyType;
+  next->submitBehavior = _values.submitBehavior;
+  next->inputAccessoryViewButtonLabel = _values.inputAccessoryViewButtonLabel;
+  next->allowFontScaling = _values.allowFontScaling;
+  next->maxFontSizeMultiplier = _values.maxFontSizeMultiplier;
+  next->inputAccessoryViewID = _values.inputAccessoryViewID;
 
   [_view updateProps:next oldProps:_props];
   _props = next;
@@ -285,6 +322,470 @@ struct TestProps {
 
   XCTAssertTrue([[_view input] isKindOfClass:[UITextView class]]);
   XCTAssertEqualObjects([_view currentText], @"carried");
+}
+
+#pragma mark - Input traits
+
+/** Switches to the single-line backing view and hands it back. */
+- (UITextField *)textFieldWith:(void (^)(TestProps &))mutate
+{
+  [self applyProps:^(TestProps &props) {
+    props.multiline = false;
+    mutate(props);
+  }];
+  return (UITextField *)[_view input];
+}
+
+- (void)testClearButtonModeReachesTheTextField
+{
+  UITextField *field = [self textFieldWith:^(TestProps &props) {
+    props.clearButtonMode = "unless-editing";
+  }];
+
+  XCTAssertEqual(field.clearButtonMode, UITextFieldViewModeUnlessEditing);
+}
+
+- (void)testAnUnsetClearButtonModeLeavesTheButtonHidden
+{
+  UITextField *field = [self textFieldWith:^(TestProps &props) {
+  }];
+
+  XCTAssertEqual(field.clearButtonMode, UITextFieldViewModeNever);
+}
+
+- (void)testPasswordRulesReachTheTextField
+{
+  UITextField *field = [self textFieldWith:^(TestProps &props) {
+    props.passwordRules = "minlength: 8;";
+  }];
+
+  XCTAssertEqualObjects(field.passwordRules.passwordRulesDescriptor, @"minlength: 8;");
+}
+
+- (void)testAnEmptyPasswordRulesDescriptorLeavesTheTraitUnset
+{
+  // `passwordRulesWithDescriptor:` on an empty string produces a rules object
+  // that suppresses the strong-password suggestion — not the same as none.
+  UITextField *field = [self textFieldWith:^(TestProps &props) {
+  }];
+
+  XCTAssertNil(field.passwordRules);
+}
+
+- (void)testSmartInsertDeleteCanBeTurnedOff
+{
+  UITextField *field = [self textFieldWith:^(TestProps &props) {
+    props.smartInsertDelete = "no";
+  }];
+
+  XCTAssertEqual(field.smartInsertDeleteType, UITextSmartInsertDeleteTypeNo);
+}
+
+- (void)testSmartInsertDeleteReachesTheMultilineViewToo
+{
+  // Both backing views are configured from the same place; a trait written to
+  // only one branch is the mistake this catches.
+  [self applyProps:^(TestProps &props) {
+    props.smartInsertDelete = "no";
+  }];
+
+  XCTAssertEqual(((UITextView *)[_view input]).smartInsertDeleteType, UITextSmartInsertDeleteTypeNo);
+}
+
+- (void)testAnUnsetSmartInsertDeleteLeavesUIKitsDefault
+{
+  UITextField *field = [self textFieldWith:^(TestProps &props) {
+  }];
+
+  XCTAssertEqual(field.smartInsertDeleteType, UITextSmartInsertDeleteTypeDefault);
+}
+
+#pragma mark - The edit menu
+
+/**
+ Puts the field on screen and makes it first responder.
+
+ `canPerformAction:` is not a pure function of the view: a detached, unfocused
+ text view answers NO to everything, which would make every assertion below pass
+ without an implementation. Editing has to actually be possible for the question
+ to mean anything.
+ */
+- (void)activateWithText:(NSString *)text
+{
+  [_view setTextValue:text fromJS:NO];
+  _window = [[UIWindow alloc] initWithFrame:CGRectMake(0, 0, 320, 480)];
+  [_window addSubview:_view];
+  [_window makeKeyAndVisible];
+  XCTAssertTrue([[_view input] becomeFirstResponder], @"the field never became editable");
+}
+
+- (void)testTheEditMenuIsLeftToUIKitByDefault
+{
+  [self activateWithText:@"copyable"];
+
+  XCTAssertTrue([(UIResponder *)[_view input] canPerformAction:@selector(selectAll:) withSender:nil]);
+}
+
+- (void)testAHiddenEditMenuRefusesEveryAction
+{
+  [self applyProps:^(TestProps &props) {
+    props.contextMenuHidden = true;
+  }];
+
+  [self activateWithText:@"copyable"];
+
+  UIResponder *input = (UIResponder *)[_view input];
+  XCTAssertFalse([input canPerformAction:@selector(selectAll:) withSender:nil]);
+  XCTAssertFalse([input canPerformAction:@selector(copy:) withSender:nil]);
+  XCTAssertFalse([input canPerformAction:@selector(paste:) withSender:nil]);
+}
+
+- (void)testAHiddenEditMenuSurvivesSwitchingBackingViews
+{
+  [self applyProps:^(TestProps &props) {
+    props.contextMenuHidden = true;
+  }];
+
+  // Covers the single-line branch and the rebuild path at once: switching views
+  // throws the configured instance away and builds a fresh one.
+  [self applyProps:^(TestProps &props) {
+    props.multiline = false;
+  }];
+  [self activateWithText:@"copyable"];
+
+  XCTAssertFalse([(UIResponder *)[_view input] canPerformAction:@selector(selectAll:) withSender:nil]);
+}
+
+#pragma mark - The default input accessory view
+
+/**
+ A number pad has no return key, so React Native gives it a toolbar carrying one
+ — otherwise the keyboard cannot be dismissed from the keyboard at all. Mirrors
+ `RCTTextInputComponentView`'s `setDefaultInputAccessoryView`.
+ */
+- (UIToolbar *)accessoryToolbar
+{
+  return (UIToolbar *)[[_view input] inputAccessoryView];
+}
+
+- (UIBarButtonItem *)accessoryButton
+{
+  return [self accessoryToolbar].items.lastObject;
+}
+
+- (void)testANumberPadGetsAToolbarTitledAfterItsReturnKey
+{
+  [self applyProps:^(TestProps &props) {
+    props.keyboardType = "number-pad";
+    props.returnKeyType = "search";
+  }];
+
+  XCTAssertTrue([[self accessoryToolbar] isKindOfClass:[UIToolbar class]]);
+  XCTAssertEqualObjects([self accessoryButton].title, @"Search");
+}
+
+- (void)testAKeyboardThatAlreadyHasAReturnKeyGetsNoToolbar
+{
+  [self applyProps:^(TestProps &props) {
+    props.returnKeyType = "done";
+  }];
+
+  XCTAssertNil([[_view input] inputAccessoryView]);
+}
+
+- (void)testANumberPadWithNoReturnKeyTypeGetsNoToolbar
+{
+  // Nothing to label the button with, and React Native adds none either.
+  [self applyProps:^(TestProps &props) {
+    props.keyboardType = "number-pad";
+  }];
+
+  XCTAssertNil([[_view input] inputAccessoryView]);
+}
+
+- (void)testAnAccessoryButtonLabelIsEnoughOnItsOwn
+{
+  [self applyProps:^(TestProps &props) {
+    props.keyboardType = "decimal-pad";
+    props.inputAccessoryViewButtonLabel = "完了";
+  }];
+
+  XCTAssertEqualObjects([self accessoryButton].title, @"完了");
+}
+
+- (void)testTheToolbarGoesAwayWhenTheKeyboardStopsBeingANumberPad
+{
+  [self applyProps:^(TestProps &props) {
+    props.keyboardType = "number-pad";
+    props.returnKeyType = "done";
+  }];
+
+  [self applyProps:^(TestProps &props) {
+    props.keyboardType = "";
+  }];
+
+  XCTAssertNil([[_view input] inputAccessoryView]);
+}
+
+- (void)testTheToolbarSurvivesSwitchingBackingViews
+{
+  [self applyProps:^(TestProps &props) {
+    props.keyboardType = "number-pad";
+    props.returnKeyType = "done";
+  }];
+
+  [self applyProps:^(TestProps &props) {
+    props.multiline = false;
+  }];
+
+  XCTAssertEqualObjects([self accessoryButton].title, @"Done");
+}
+
+- (void)testTheToolbarButtonDismissesTheKeyboard
+{
+  [self applyProps:^(TestProps &props) {
+    props.keyboardType = "number-pad";
+    props.returnKeyType = "done";
+  }];
+  [self activateWithText:@"1234"];
+
+  UIBarButtonItem *done = [self accessoryButton];
+  XCTAssertNotNil(done, @"there was no button to press");
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
+  [done.target performSelector:done.action withObject:done];
+#pragma clang diagnostic pop
+
+  XCTAssertFalse([[_view input] isFirstResponder]);
+}
+
+- (void)testTheToolbarButtonKeepsFocusWhenSubmitBehaviourSaysSo
+{
+  [self applyProps:^(TestProps &props) {
+    props.keyboardType = "number-pad";
+    props.returnKeyType = "done";
+    props.submitBehavior = "submit";
+  }];
+  [self activateWithText:@"1234"];
+
+  UIBarButtonItem *done = [self accessoryButton];
+  XCTAssertNotNil(done, @"there was no button to press");
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
+  [done.target performSelector:done.action withObject:done];
+#pragma clang diagnostic pop
+
+  XCTAssertTrue([[_view input] isFirstResponder]);
+}
+
+#pragma mark - InputAccessoryView
+
+/**
+ React Native's own discovery predicate, from `RCTInputAccessoryComponentView`'s
+ `RCTFindTextInputWithNativeId` (lines 23-41). It walks the window and matches
+ on duck typing alone — a view that answers to `inputAccessoryViewID` and
+ `setInputAccessoryView:` and carries the right id. Reproduced rather than
+ mocked, because satisfying exactly this is the whole contract: nothing else in
+ this library reads the prop back.
+ */
+- (BOOL)isFoundByAnInputAccessoryViewWithID:(NSString *)nativeID
+{
+  UIView *view = (UIView *)[_view input];
+  if (![view respondsToSelector:@selector(inputAccessoryViewID)] ||
+      ![view respondsToSelector:@selector(setInputAccessoryView:)]) {
+    return NO;
+  }
+  return [[view valueForKey:@"inputAccessoryViewID"] isEqualToString:nativeID];
+}
+
+- (void)testTheFieldIsFoundByAnInputAccessoryViewCarryingTheSameID
+{
+  [self applyProps:^(TestProps &props) {
+    props.inputAccessoryViewID = "composer";
+  }];
+
+  XCTAssertTrue([self isFoundByAnInputAccessoryViewWithID:@"composer"]);
+}
+
+- (void)testTheFieldIsNotFoundByAnInputAccessoryViewWithADifferentID
+{
+  [self applyProps:^(TestProps &props) {
+    props.inputAccessoryViewID = "composer";
+  }];
+
+  XCTAssertFalse([self isFoundByAnInputAccessoryViewWithID:@"somethingElse"]);
+}
+
+- (void)testTheIDSurvivesSwitchingBackingViews
+{
+  [self applyProps:^(TestProps &props) {
+    props.inputAccessoryViewID = "composer";
+  }];
+
+  [self applyProps:^(TestProps &props) {
+    props.multiline = false;
+  }];
+
+  XCTAssertTrue([self isFoundByAnInputAccessoryViewWithID:@"composer"]);
+}
+
+- (void)testAnIDSuppressesTheDefaultNumberPadToolbar
+{
+  // React Native returns early from `setDefaultInputAccessoryView` for the same
+  // reason: the `InputAccessoryView` component owns the slot, and a toolbar
+  // written here would take it from under the accessory content.
+  [self applyProps:^(TestProps &props) {
+    props.keyboardType = "number-pad";
+    props.returnKeyType = "done";
+    props.inputAccessoryViewID = "composer";
+  }];
+
+  XCTAssertNil([[_view input] inputAccessoryView]);
+}
+
+- (void)testAnAccessoryViewAssignedFromOutsideIsNotClobbered
+{
+  [self applyProps:^(TestProps &props) {
+    props.inputAccessoryViewID = "composer";
+  }];
+  UIView *content = [UIView new];
+  // What React Native's component does once it has found the field.
+  ((UITextView *)[_view input]).inputAccessoryView = content;
+
+  [self applyProps:^(TestProps &props) {
+    props.keyboardType = "number-pad";
+    props.returnKeyType = "done";
+  }];
+
+  XCTAssertEqualObjects(((UITextView *)[_view input]).inputAccessoryView, content);
+}
+
+- (void)testAToolbarThisFieldDrewIsTakenBackOffWhenAnIDArrives
+{
+  [self applyProps:^(TestProps &props) {
+    props.keyboardType = "number-pad";
+    props.returnKeyType = "done";
+  }];
+  XCTAssertNotNil([[_view input] inputAccessoryView], @"there was no toolbar to take off");
+
+  [self applyProps:^(TestProps &props) {
+    props.inputAccessoryViewID = "composer";
+  }];
+
+  // Stepping aside for an `InputAccessoryView` means leaving *its* accessory
+  // alone, not leaving a toolbar of ours in the slot it is about to claim.
+  XCTAssertNil([[_view input] inputAccessoryView]);
+}
+
+- (void)testAnAccessoryViewAssignedFromOutsideSurvivesSwitchingBackingViews
+{
+  [self applyProps:^(TestProps &props) {
+    props.inputAccessoryViewID = "composer";
+  }];
+  UIView *content = [UIView new];
+  ((UITextView *)[_view input]).inputAccessoryView = content;
+
+  [self applyProps:^(TestProps &props) {
+    props.multiline = false;
+  }];
+
+  // React Native's component resolves its field once, in `didMoveToWindow`, so
+  // a backing view that comes up without the accessory never gets it back — the
+  // bar is gone for the rest of the session. Core carries it across the same
+  // switch (`RCTTextInputUtils.mm`'s `RCTCopyBackedTextInput`, line 29).
+  XCTAssertEqualObjects(((UITextField *)[_view input]).inputAccessoryView, content);
+}
+
+#pragma mark - Dynamic Type
+
+- (void)testTheSystemTextSizeBecomesAMultiplier
+{
+  XCTAssertEqualWithAccuracy([_view fontSizeMultiplierForContentSizeCategory:UIContentSizeCategoryLarge], 1.0, 0.001);
+  XCTAssertEqualWithAccuracy(
+      [_view fontSizeMultiplierForContentSizeCategory:UIContentSizeCategoryExtraSmall], 0.823, 0.001);
+  XCTAssertEqualWithAccuracy(
+      [_view fontSizeMultiplierForContentSizeCategory:UIContentSizeCategoryAccessibilityExtraExtraExtraLarge],
+      3.571,
+      0.001);
+}
+
+- (void)testAnUnspecifiedTextSizeMeansNoScaling
+{
+  // A view that is not in a hierarchy yet reports `unspecified`. React Native
+  // reads its table with that key and gets 0 back, which would resolve to a
+  // zero-point font; a missing entry has to mean "no scaling" instead.
+  XCTAssertEqualWithAccuracy(
+      [_view fontSizeMultiplierForContentSizeCategory:UIContentSizeCategoryUnspecified], 1.0, 0.001);
+}
+
+- (void)testScalingIsRefusedWhenAllowFontScalingIsOff
+{
+  [self applyProps:^(TestProps &props) {
+    props.allowFontScaling = false;
+  }];
+
+  XCTAssertEqualWithAccuracy([_view effectiveFontSizeMultiplierForBase:1.5], 1.0, 0.001);
+}
+
+- (void)testScalingIsUncappedByDefault
+{
+  XCTAssertEqualWithAccuracy([_view effectiveFontSizeMultiplierForBase:3.571], 3.571, 0.001);
+}
+
+- (void)testMaxFontSizeMultiplierCapsTheScaling
+{
+  [self applyProps:^(TestProps &props) {
+    props.maxFontSizeMultiplier = 1.2;
+  }];
+
+  XCTAssertEqualWithAccuracy([_view effectiveFontSizeMultiplierForBase:1.5], 1.2, 0.001);
+}
+
+- (void)testACapAboveTheSystemScaleChangesNothing
+{
+  [self applyProps:^(TestProps &props) {
+    props.maxFontSizeMultiplier = 2;
+  }];
+
+  XCTAssertEqualWithAccuracy([_view effectiveFontSizeMultiplierForBase:1.118], 1.118, 0.001);
+}
+
+- (void)testACapBelowOneIsIgnoredRatherThanShrinkingTheText
+{
+  // React Native's rule: only a cap of 1 or more counts.
+  [self applyProps:^(TestProps &props) {
+    props.maxFontSizeMultiplier = 0.5;
+  }];
+
+  XCTAssertEqualWithAccuracy([_view effectiveFontSizeMultiplierForBase:1.5], 1.5, 0.001);
+}
+
+- (void)testATextSizeChangeDoesNotCancelAnOpenConversion
+{
+  // The whole point of the library: a system-wide text size change arrives
+  // unannounced, and rewriting attributes mid-conversion drops the underline.
+  [self beginComposing:@"にほんご"];
+
+  [_view contentSizeCategoryDidChange];
+
+  XCTAssertNotNil([_view input].markedTextRange, @"attributes were written mid-conversion");
+  XCTAssertEqualObjects([_view currentText], @"にほんご");
+}
+
+- (void)testATextSizeChangeReappliesTheFont
+{
+  [self applyProps:^(TestProps &props) {
+    props.fontSize = 20;
+  }];
+  UITextView *textView = (UITextView *)[_view input];
+  // Stands in for the font left behind by the previous text size. Nothing in
+  // the props changes when the system setting does, so a handler that only
+  // recomputed without writing would leave this untouched.
+  textView.font = [UIFont systemFontOfSize:9];
+
+  [_view contentSizeCategoryDidChange];
+
+  XCTAssertEqual(textView.font.pointSize, 20);
 }
 
 #pragma mark - Accessibility

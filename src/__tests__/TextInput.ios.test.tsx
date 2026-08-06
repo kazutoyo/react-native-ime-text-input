@@ -308,11 +308,112 @@ describe('<TextInput> props reaching the native view', () => {
     expect(nativeProps().editable).toBe(false);
   });
 
+  it('sends clearButtonMode down as the token the native side parses', async () => {
+    await render(<TextInput testID="input" clearButtonMode="unless-editing" />);
+
+    expect(nativeProps().clearButtonMode).toBe('unless-editing');
+  });
+
+  it('sends an empty clearButtonMode when none is given, so UIKit keeps its default', async () => {
+    await render(<TextInput testID="input" />);
+
+    expect(nativeProps().clearButtonMode).toBe('');
+  });
+
+  it('sends passwordRules down as its descriptor string', async () => {
+    await render(<TextInput testID="input" passwordRules="minlength: 8;" />);
+
+    expect(nativeProps().passwordRules).toBe('minlength: 8;');
+  });
+
+  it('sends an empty passwordRules when none is given — the native prop is not optional', async () => {
+    await render(<TextInput testID="input" />);
+
+    expect(nativeProps().passwordRules).toBe('');
+  });
+
+  it.each([
+    [true, 'yes'],
+    [false, 'no'],
+  ] as const)('maps smartInsertDelete=%s to `%s`', async (given, expected) => {
+    await render(<TextInput testID="input" smartInsertDelete={given} />);
+
+    expect(nativeProps().smartInsertDelete).toBe(expected);
+  });
+
+  it('leaves smartInsertDelete as `auto` when unset, so UIKit keeps its default', async () => {
+    // The same tri-state `spellCheck` uses: a bare boolean cannot say "not set",
+    // and UIKit's default is not the same as an explicit `yes`.
+    await render(<TextInput testID="input" />);
+
+    expect(nativeProps().smartInsertDelete).toBe('auto');
+  });
+
+  it('forwards contextMenuHidden to the native view', async () => {
+    await render(<TextInput testID="input" contextMenuHidden />);
+
+    expect(nativeProps().contextMenuHidden).toBe(true);
+  });
+
+  it('leaves the edit menu available when contextMenuHidden is not given', async () => {
+    await render(<TextInput testID="input" />);
+
+    expect(nativeProps().contextMenuHidden).toBe(false);
+  });
+
+  it('sends inputAccessoryViewButtonLabel down as its label', async () => {
+    await render(<TextInput testID="input" inputAccessoryViewButtonLabel="完了" />);
+
+    expect(nativeProps().inputAccessoryViewButtonLabel).toBe('完了');
+  });
+
+  it('sends an empty accessory label when none is given — the native prop is not optional', async () => {
+    await render(<TextInput testID="input" />);
+
+    expect(nativeProps().inputAccessoryViewButtonLabel).toBe('');
+  });
+
+  it('scales with the system text size unless told not to, as React Native does', async () => {
+    await render(<TextInput testID="input" />);
+
+    expect(nativeProps().allowFontScaling).toBe(true);
+  });
+
+  it('forwards allowFontScaling={false}', async () => {
+    await render(<TextInput testID="input" allowFontScaling={false} />);
+
+    expect(nativeProps().allowFontScaling).toBe(false);
+  });
+
+  it('forwards maxFontSizeMultiplier as the cap on that scaling', async () => {
+    await render(<TextInput testID="input" maxFontSizeMultiplier={1.5} />);
+
+    expect(nativeProps().maxFontSizeMultiplier).toBe(1.5);
+  });
+
+  it('sends no cap when maxFontSizeMultiplier is not given', async () => {
+    await render(<TextInput testID="input" />);
+
+    expect(nativeProps().maxFontSizeMultiplier).toBe(0);
+  });
+
+  it('sends inputAccessoryViewID down so an InputAccessoryView can find the field', async () => {
+    await render(<TextInput testID="input" inputAccessoryViewID="composer" />);
+
+    expect(nativeProps().inputAccessoryViewID).toBe('composer');
+  });
+
+  it('sends an empty inputAccessoryViewID when none is given', async () => {
+    await render(<TextInput testID="input" />);
+
+    expect(nativeProps().inputAccessoryViewID).toBe('');
+  });
+
   it('drops the props that do nothing on iOS, and warns', async () => {
-    await render(<TextInput testID="input" scrollEnabled clearButtonMode="always" />);
+    await render(<TextInput testID="input" scrollEnabled dataDetectorTypes="link" />);
 
     expect(nativeProps().scrollEnabled).toBeUndefined();
-    expect(nativeProps().clearButtonMode).toBeUndefined();
+    expect(nativeProps().dataDetectorTypes).toBeUndefined();
     expect(console.warn).toHaveBeenCalledTimes(2);
   });
 });

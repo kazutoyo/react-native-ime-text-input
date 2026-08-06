@@ -7,6 +7,55 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Added
+
+- `clearButtonMode`, `passwordRules` and `smartInsertDelete` now reach UIKit on
+  iOS. `clearButtonMode` was previously listed as unsupported on the grounds
+  that UIKit had no equivalent, which was wrong — `UITextField.clearButtonMode`
+  is exactly it, and React Native core sets the same property.
+- `contextMenuHidden` now suppresses the cut/copy/paste menu on iOS. There is no
+  UIKit property for it, so the backing views are subclassed to override
+  `canPerformAction:` and, from iOS 17, `buildMenuWithBuilder:` — the same two
+  halves React Native core overrides.
+- A number pad now gets the same default toolbar React Native gives it. A
+  `number-pad`, `phone-pad`, `decimal-pad` or ASCII-capable number pad has no
+  return key, so a field using one could not be dismissed from the keyboard at
+  all. The toolbar appears when `returnKeyType` names a key or the new
+  `inputAccessoryViewButtonLabel` prop gives it a title, and its button submits
+  and blurs exactly as the return key does.
+- `inputAccessoryViewID` now connects a field to React Native's
+  `InputAccessoryView`. Nothing reads the prop back: React Native's component
+  walks the window for a view answering to `inputAccessoryViewID` and
+  `setInputAccessoryView:` and assigns itself, so carrying the id is the whole
+  contract. When one is set, the default number-pad toolbar steps aside rather
+  than taking the slot from the accessory content — and a toolbar drawn before
+  the id arrived is taken back off, so the wrong bar is never left behind.
+
+### Fixed
+
+- Text now follows the system text size setting, as React Native's `TextInput`
+  does. `allowFontScaling` defaults to `true` in React Native, so this diverged
+  at the default: nobody had to pass anything to get the old behaviour, and no
+  warning fired. Anyone using a larger Text Size saw a field that ignored it.
+  `allowFontScaling` and `maxFontSizeMultiplier` are now honoured, `lineHeight`
+  scales alongside the font and letter spacing does not — matching core — and a
+  text size change that arrives mid-conversion is held back like any other
+  attribute change rather than dropping the composition underline.
+
+### Changed
+
+- The "ignored on iOS" documentation no longer claims every prop in that list
+  lacks a UIKit equivalent. Six of them — `dataDetectorTypes`,
+  `lineBreakStrategyIOS`, `onScroll`, `rejectResponderTermination`,
+  `scrollEnabled` and `showSoftInputOnFocus` — are implemented by React Native
+  core on iOS and simply are not implemented here yet. `showSoftInputOnFocus` is
+  the easiest to misjudge: React Native's types put it under Android, but its
+  Fabric iOS view implements it by swapping `inputView` for an empty one.
+- The spec/native sync check strips comments before searching. A prop mentioned
+  only in prose — including one documented as *not* supported — satisfied the
+  search and passed vacuously, which is exactly what happened to
+  `inputAccessoryViewID` before this change.
+
 ## [0.2.1] - 2026-08-06
 
 ### Fixed

@@ -96,7 +96,11 @@ It behaves like React Native's `TextInput` for the most part, but a few props an
 
 Passing one on iOS ignores the value and warns once per prop name in `__DEV__`.
 
-**Props.** `allowFontScaling`, `blurOnSubmit` (use `submitBehavior`), `clearButtonMode`, `contextMenuHidden`, `dataDetectorTypes`, `disableFullscreenUI`, `importantForAutofill`, `inlineImageLeft`, `inlineImagePadding`, `inputAccessoryViewID`, `lineBreakStrategyIOS`, `maxFontSizeMultiplier`, `onScroll`, `rejectResponderTermination`, `returnKeyLabel`, `scrollEnabled`, `showSoftInputOnFocus`, `textBreakStrategy`, `underlineColorAndroid`
+**Props.** `blurOnSubmit` (use `submitBehavior`), `dataDetectorTypes`, `disableFullscreenUI`, `importantForAutofill`, `inlineImageLeft`, `inlineImagePadding`, `lineBreakStrategyIOS`, `onScroll`, `rejectResponderTermination`, `returnKeyLabel`, `scrollEnabled`, `showSoftInputOnFocus`, `textBreakStrategy`, `underlineColorAndroid`
+
+Some of that list is Android-only or deprecated, so React Native's own iOS implementation ignores it too and nothing is lost relative to it: `blurOnSubmit`, `disableFullscreenUI`, `importantForAutofill`, `inlineImageLeft`, `inlineImagePadding`, `returnKeyLabel`, `textBreakStrategy`, `underlineColorAndroid`.
+
+The rest React Native core does implement on iOS, and they are simply not implemented here yet: `dataDetectorTypes`, `lineBreakStrategyIOS`, `onScroll`, `rejectResponderTermination`, `scrollEnabled`, `showSoftInputOnFocus`. The last is easy to misjudge — React Native's *types* list it under Android, but its Fabric iOS view implements it.
 
 **Style properties.** `textTransform`, `fontVariant`, `verticalAlign`, `textAlignVertical`, `includeFontPadding`
 

@@ -100,7 +100,11 @@ React Native の `TextInput` が変換中に書き込みを行い、変換を打
 
 これらを iOS で指定したときは値を無視し、`__DEV__` で prop 名ごとに1回だけ警告します。
 
-**props。** `allowFontScaling` / `blurOnSubmit`（`submitBehavior` を使ってください）/ `clearButtonMode` / `contextMenuHidden` / `dataDetectorTypes` / `disableFullscreenUI` / `importantForAutofill` / `inlineImageLeft` / `inlineImagePadding` / `inputAccessoryViewID` / `lineBreakStrategyIOS` / `maxFontSizeMultiplier` / `onScroll` / `rejectResponderTermination` / `returnKeyLabel` / `scrollEnabled` / `showSoftInputOnFocus` / `textBreakStrategy` / `underlineColorAndroid`
+**props。** `blurOnSubmit`（`submitBehavior` を使ってください）/ `dataDetectorTypes` / `disableFullscreenUI` / `importantForAutofill` / `inlineImageLeft` / `inlineImagePadding` / `lineBreakStrategyIOS` / `onScroll` / `rejectResponderTermination` / `returnKeyLabel` / `scrollEnabled` / `showSoftInputOnFocus` / `textBreakStrategy` / `underlineColorAndroid`
+
+このうち `blurOnSubmit` / `disableFullscreenUI` / `importantForAutofill` / `inlineImageLeft` / `inlineImagePadding` / `returnKeyLabel` / `textBreakStrategy` / `underlineColorAndroid` は Android 専用か非推奨で、React Native 自身の iOS 実装でも無視されるため、React Native と比べて失われるものはありません。
+
+残りの `dataDetectorTypes` / `lineBreakStrategyIOS` / `onScroll` / `rejectResponderTermination` / `scrollEnabled` / `showSoftInputOnFocus` は React Native 本体が iOS で実装しており、本ライブラリでまだ実装していないだけです。最後の `showSoftInputOnFocus` は誤解しやすく、React Native の**型定義**では Android 側に置かれていますが、Fabric の iOS 実装は対応しています。
 
 **スタイルプロパティ。** `textTransform` / `fontVariant` / `verticalAlign` / `textAlignVertical` / `includeFontPadding`
 

@@ -15,8 +15,18 @@ const root = join(__dirname, '..', '..');
 const read = (path: string) => readFileSync(join(root, path), 'utf8');
 
 const spec = read('src/RNImeTextInputNativeComponent.ts');
+
+/**
+ * Comments are stripped before searching. The native side explains itself in
+ * prose, and a prop named only in a comment — including one saying it is *not*
+ * supported — would otherwise satisfy the search and pass vacuously.
+ */
+function withoutComments(source: string): string {
+  return source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
+}
+
 const native = ['ios/RNImeTextInput.mm', 'ios/RNImeTextInputAttributes.mm', 'ios/RNImeTextInputAttributes.h']
-  .map(read)
+  .map((path) => withoutComments(read(path)))
   .join('\n');
 
 /** The property names declared in an interface body, ignoring comments. */

@@ -6,6 +6,7 @@
 {
   if (self = [super init]) {
     _fontSize = 17;
+    _fontSizeMultiplier = 1;
     _fontWeight = UIFontWeightRegular;
     _textAlign = NSTextAlignmentNatural;
     _decorationStyle = NSUnderlineStyleSingle;
@@ -19,6 +20,7 @@
 {
   RNImeTextInputAttributes *copy = [[RNImeTextInputAttributes allocWithZone:zone] init];
   copy.fontSize = _fontSize;
+  copy.fontSizeMultiplier = _fontSizeMultiplier;
   copy.fontWeight = _fontWeight;
   copy.fontFamily = _fontFamily;
   copy.italic = _italic;
@@ -37,8 +39,17 @@
   return copy;
 }
 
+/// The point size actually asked of UIKit: the style's size scaled by the
+/// system text size setting. Every branch of `font` resolves against this, so
+/// a named family scales the same way the system font does.
+- (CGFloat)scaledFontSize
+{
+  return _fontSize * _fontSizeMultiplier;
+}
+
 - (UIFont *)font
 {
+  CGFloat size = [self scaledFontSize];
   UIFont *base = nil;
   if (_fontFamily.length > 0) {
     // A custom family has to be resolved together with the weight and italic
@@ -53,11 +64,11 @@
       UIFontDescriptorFamilyAttribute : _fontFamily,
       UIFontDescriptorTraitsAttribute : traits,
     }];
-    base = [UIFont fontWithDescriptor:descriptor size:_fontSize];
+    base = [UIFont fontWithDescriptor:descriptor size:size];
     // `fontFamily` may also be a full face name ('Avenir-Heavy'), which the
     // family attribute cannot resolve.
     if (base == nil || ![base.familyName isEqualToString:_fontFamily]) {
-      UIFont *byName = [UIFont fontWithName:_fontFamily size:_fontSize];
+      UIFont *byName = [UIFont fontWithName:_fontFamily size:size];
       if (byName != nil) {
         base = byName;
       }
@@ -69,18 +80,18 @@
       UIFontDescriptor *italicised = [base.fontDescriptor
           fontDescriptorWithSymbolicTraits:(base.fontDescriptor.symbolicTraits |
                                             UIFontDescriptorTraitItalic)];
-      return italicised ? [UIFont fontWithDescriptor:italicised size:_fontSize] : base;
+      return italicised ? [UIFont fontWithDescriptor:italicised size:size] : base;
     }
   }
 
-  base = [UIFont systemFontOfSize:_fontSize weight:_fontWeight];
+  base = [UIFont systemFontOfSize:size weight:_fontWeight];
   if (!_italic) {
     return base;
   }
   UIFontDescriptor *descriptor =
       [base.fontDescriptor fontDescriptorWithSymbolicTraits:(base.fontDescriptor.symbolicTraits |
                                                              UIFontDescriptorTraitItalic)];
-  return descriptor ? [UIFont fontWithDescriptor:descriptor size:_fontSize] : base;
+  return descriptor ? [UIFont fontWithDescriptor:descriptor size:size] : base;
 }
 
 - (NSDictionary<NSAttributedStringKey, id> *)attributes
@@ -98,8 +109,13 @@
     NSMutableParagraphStyle *paragraphStyle = [NSMutableParagraphStyle new];
     paragraphStyle.alignment = _textAlign;
     if (_lineHeight > 0) {
-      paragraphStyle.minimumLineHeight = _lineHeight;
-      paragraphStyle.maximumLineHeight = _lineHeight;
+      // Scaled alongside the font, as React Native does
+      // (`RCTAttributedTextUtils.mm:229-232`). A fixed line height would crowd
+      // the lines together exactly when the text got bigger. Letter spacing is
+      // deliberately left alone — React Native does not scale kerning either.
+      CGFloat lineHeight = _lineHeight * _fontSizeMultiplier;
+      paragraphStyle.minimumLineHeight = lineHeight;
+      paragraphStyle.maximumLineHeight = lineHeight;
     }
     if (_writingDirection != NSWritingDirectionNatural) {
       paragraphStyle.baseWritingDirection = _writingDirection;
@@ -141,7 +157,8 @@
   if (other == nil) {
     return NO;
   }
-  return _fontSize == other.fontSize && _fontWeight == other.fontWeight &&
+  return _fontSize == other.fontSize && _fontSizeMultiplier == other.fontSizeMultiplier &&
+      _fontWeight == other.fontWeight &&
       (_fontFamily == other.fontFamily || [_fontFamily isEqualToString:other.fontFamily]) &&
       _italic == other.italic && (_color == other.color || [_color isEqual:other.color]) &&
       _textAlign == other.textAlign && _lineHeight == other.lineHeight &&
