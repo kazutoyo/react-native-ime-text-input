@@ -44,9 +44,12 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ### Changed
 
 - The "ignored on iOS" documentation no longer claims every prop in that list
-  lacks a UIKit equivalent. `onScroll` and `scrollEnabled` are implementable and
-  simply are not implemented yet; the rest are Android-only or genuinely absent
-  from UIKit.
+  lacks a UIKit equivalent. Six of them — `dataDetectorTypes`,
+  `lineBreakStrategyIOS`, `onScroll`, `rejectResponderTermination`,
+  `scrollEnabled` and `showSoftInputOnFocus` — are implemented by React Native
+  core on iOS and simply are not implemented here yet. `showSoftInputOnFocus` is
+  the easiest to misjudge: React Native's types put it under Android, but its
+  Fabric iOS view implements it by swapping `inputView` for an empty one.
 - The spec/native sync check strips comments before searching. A prop mentioned
   only in prose — including one documented as *not* supported — satisfied the
   search and passed vacuously, which is exactly what happened to

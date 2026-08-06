@@ -4,14 +4,18 @@
  * Two different reasons are mixed together, and the distinction matters when
  * deciding what to implement next:
  *
- * - UIKit exposes nothing equivalent on a text input, so React Native's own iOS
- *   implementation ignores them too — the Android-only ones
- *   (`disableFullscreenUI`, `importantForAutofill`, `inlineImageLeft`,
- *   `inlineImagePadding`, `returnKeyLabel`, `showSoftInputOnFocus`,
- *   `textBreakStrategy`, `underlineColorAndroid`), plus `blurOnSubmit`, which
- *   is React Native's own deprecated alias for `submitBehavior`.
- * - Simply not implemented here yet, though UIKit could do it and React Native
- *   core does: `scrollEnabled` and `onScroll` among them.
+ * - React Native's own iOS implementation ignores them too, so nothing is lost
+ *   relative to it: the Android-only ones (`disableFullscreenUI`,
+ *   `importantForAutofill`, `inlineImageLeft`, `inlineImagePadding`,
+ *   `returnKeyLabel`, `textBreakStrategy`, `underlineColorAndroid`), plus
+ *   `blurOnSubmit`, which is React Native's own deprecated alias for
+ *   `submitBehavior`.
+ * - Simply not implemented here yet, though React Native core implements them
+ *   on iOS: `dataDetectorTypes`, `lineBreakStrategyIOS`, `onScroll`,
+ *   `rejectResponderTermination`, `scrollEnabled` and `showSoftInputOnFocus`.
+ *   `showSoftInputOnFocus` is worth singling out because React Native's *types*
+ *   put it under Android — its Fabric iOS view implements it anyway, by
+ *   swapping `inputView` for an empty one.
  *
  * They stay in the prop type either way: only iOS is replaced, and on Android
  * and web React Native's own `TextInput` honours them. Removing them from the

@@ -404,6 +404,11 @@ static UIKeyboardAppearance RNImeTextInputKeyboardAppearance(const std::string &
 {
   NSString *previousText = [self currentText];
   BOOL wasFirstResponder = [self input].isFirstResponder;
+  // An `InputAccessoryView` assigns itself to the backing view directly and
+  // resolves its field only once, in `didMoveToWindow`, so an accessory dropped
+  // here is gone for good. Core carries it across the same switch
+  // (`RCTTextInputUtils.mm`'s `RCTCopyBackedTextInput`).
+  UIView *previousAccessory = [self input].inputAccessoryView;
 
   [_textView removeFromSuperview];
   [_textField removeFromSuperview];
@@ -440,6 +445,10 @@ static UIKeyboardAppearance RNImeTextInputKeyboardAppearance(const std::string &
   [self applyContextMenuHidden];
   // Before the default toolbar: it steps aside when an id is present.
   [self applyAccessoryViewID];
+  _textView.inputAccessoryView = previousAccessory;
+  _textField.inputAccessoryView = previousAccessory;
+  // Overwrites the carried value when the toolbar is ours to draw, and leaves
+  // it alone when an `inputAccessoryViewID` says it is not.
   [self applyDefaultInputAccessoryView];
   [self setTextValue:previousText fromJS:YES];
 

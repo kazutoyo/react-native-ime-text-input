@@ -660,6 +660,25 @@ struct TestProps {
   XCTAssertEqualObjects(((UITextView *)[_view input]).inputAccessoryView, content);
 }
 
+- (void)testAnAccessoryViewAssignedFromOutsideSurvivesSwitchingBackingViews
+{
+  [self applyProps:^(TestProps &props) {
+    props.inputAccessoryViewID = "composer";
+  }];
+  UIView *content = [UIView new];
+  ((UITextView *)[_view input]).inputAccessoryView = content;
+
+  [self applyProps:^(TestProps &props) {
+    props.multiline = false;
+  }];
+
+  // React Native's component resolves its field once, in `didMoveToWindow`, so
+  // a backing view that comes up without the accessory never gets it back — the
+  // bar is gone for the rest of the session. Core carries it across the same
+  // switch (`RCTTextInputUtils.mm`'s `RCTCopyBackedTextInput`, line 29).
+  XCTAssertEqualObjects(((UITextField *)[_view input]).inputAccessoryView, content);
+}
+
 #pragma mark - Dynamic Type
 
 - (void)testTheSystemTextSizeBecomesAMultiplier

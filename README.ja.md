@@ -102,7 +102,9 @@ React Native の `TextInput` が変換中に書き込みを行い、変換を打
 
 **props。** `blurOnSubmit`（`submitBehavior` を使ってください）/ `dataDetectorTypes` / `disableFullscreenUI` / `importantForAutofill` / `inlineImageLeft` / `inlineImagePadding` / `lineBreakStrategyIOS` / `onScroll` / `rejectResponderTermination` / `returnKeyLabel` / `scrollEnabled` / `showSoftInputOnFocus` / `textBreakStrategy` / `underlineColorAndroid`
 
-上のほとんどは Android 専用か UIKit に相当するものがなく、React Native 自身の iOS 実装でも無視されます。例外は `onScroll` / `scrollEnabled` の2つで、UIKit にも React Native 本体にも実装はあり、本ライブラリでまだ実装していないだけです。
+このうち `blurOnSubmit` / `disableFullscreenUI` / `importantForAutofill` / `inlineImageLeft` / `inlineImagePadding` / `returnKeyLabel` / `textBreakStrategy` / `underlineColorAndroid` は Android 専用か非推奨で、React Native 自身の iOS 実装でも無視されるため、React Native と比べて失われるものはありません。
+
+残りの `dataDetectorTypes` / `lineBreakStrategyIOS` / `onScroll` / `rejectResponderTermination` / `scrollEnabled` / `showSoftInputOnFocus` は React Native 本体が iOS で実装しており、本ライブラリでまだ実装していないだけです。最後の `showSoftInputOnFocus` は誤解しやすく、React Native の**型定義**では Android 側に置かれていますが、Fabric の iOS 実装は対応しています。
 
 **スタイルプロパティ。** `textTransform` / `fontVariant` / `verticalAlign` / `textAlignVertical` / `includeFontPadding`
 
