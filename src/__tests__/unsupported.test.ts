@@ -16,10 +16,10 @@ describe('findUnsupportedProps', () => {
     const found = findUnsupportedProps({
       value: 'a',
       scrollEnabled: false,
-      clearButtonMode: 'while-editing',
+      dataDetectorTypes: 'link',
     });
 
-    expect(found.sort()).toEqual(['clearButtonMode', 'scrollEnabled']);
+    expect(found.sort()).toEqual(['dataDetectorTypes', 'scrollEnabled']);
   });
 
   it('ignores unsupported props that are explicitly undefined', () => {
@@ -75,7 +75,7 @@ describe('warnUnsupported', () => {
   });
 
   it('warns separately for each distinct name', () => {
-    warnUnsupported('prop', ['scrollEnabled', 'clearButtonMode']);
+    warnUnsupported('prop', ['scrollEnabled', 'dataDetectorTypes']);
 
     expect(warn).toHaveBeenCalledTimes(2);
   });

@@ -21,6 +21,8 @@
 @interface RNImeTextInputAttributes : NSObject <NSCopying>
 
 @property (nonatomic, assign) CGFloat fontSize;
+/** The system text size scale. 1 means no scaling. */
+@property (nonatomic, assign) CGFloat fontSizeMultiplier;
 @property (nonatomic, assign) UIFontWeight fontWeight;
 @property (nonatomic, copy, nullable) NSString *fontFamily;
 @property (nonatomic, assign) BOOL italic;

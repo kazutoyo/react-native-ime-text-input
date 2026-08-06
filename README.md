@@ -96,7 +96,9 @@ It behaves like React Native's `TextInput` for the most part, but a few props an
 
 Passing one on iOS ignores the value and warns once per prop name in `__DEV__`.
 
-**Props.** `allowFontScaling`, `blurOnSubmit` (use `submitBehavior`), `clearButtonMode`, `contextMenuHidden`, `dataDetectorTypes`, `disableFullscreenUI`, `importantForAutofill`, `inlineImageLeft`, `inlineImagePadding`, `inputAccessoryViewID`, `lineBreakStrategyIOS`, `maxFontSizeMultiplier`, `onScroll`, `rejectResponderTermination`, `returnKeyLabel`, `scrollEnabled`, `showSoftInputOnFocus`, `textBreakStrategy`, `underlineColorAndroid`
+**Props.** `blurOnSubmit` (use `submitBehavior`), `dataDetectorTypes`, `disableFullscreenUI`, `importantForAutofill`, `inlineImageLeft`, `inlineImagePadding`, `inputAccessoryViewID`, `lineBreakStrategyIOS`, `onScroll`, `rejectResponderTermination`, `returnKeyLabel`, `scrollEnabled`, `showSoftInputOnFocus`, `textBreakStrategy`, `underlineColorAndroid`
+
+Most of that list is Android-only or has no UIKit equivalent, so React Native's own iOS implementation ignores it too. `inputAccessoryViewID` and `scrollEnabled` are the exceptions: UIKit can do them and React Native core does — they are simply not implemented here yet. `inputAccessoryViewID` only affects custom accessory views; the default toolbar React Native draws for a number pad, which has no return key of its own, is here — see `inputAccessoryViewButtonLabel`.
 
 **Style properties.** `textTransform`, `fontVariant`, `verticalAlign`, `textAlignVertical`, `includeFontPadding`
 

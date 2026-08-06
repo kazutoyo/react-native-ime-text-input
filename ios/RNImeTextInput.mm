@@ -94,6 +94,71 @@ static UITextAutocapitalizationType RNImeTextInputAutocapitalization(const std::
   return UITextAutocapitalizationTypeSentences;
 }
 
+/*
+ * The return keys React Native is willing to draw a button for, and the titles
+ * it draws — `RCTTextInputComponentView`'s `returnKeyTypesSet` and
+ * `returnKeyTypeToString:`. `UIReturnKeyDefault` is deliberately absent: a
+ * number pad with no chosen return key gets no button, because there would be
+ * nothing meaningful to write on it.
+ */
+static BOOL RNImeTextInputReturnKeyIsLabelled(UIReturnKeyType returnKeyType)
+{
+  switch (returnKeyType) {
+    case UIReturnKeyDone:
+    case UIReturnKeyGo:
+    case UIReturnKeyNext:
+    case UIReturnKeySearch:
+    case UIReturnKeySend:
+    case UIReturnKeyYahoo:
+    case UIReturnKeyGoogle:
+    case UIReturnKeyRoute:
+    case UIReturnKeyJoin:
+    case UIReturnKeyEmergencyCall:
+      return YES;
+    default:
+      return NO;
+  }
+}
+
+static NSString *RNImeTextInputReturnKeyTitle(UIReturnKeyType returnKeyType)
+{
+  switch (returnKeyType) {
+    case UIReturnKeyGo: return @"Go";
+    case UIReturnKeyNext: return @"Next";
+    case UIReturnKeySearch: return @"Search";
+    case UIReturnKeySend: return @"Send";
+    case UIReturnKeyYahoo: return @"Yahoo";
+    case UIReturnKeyGoogle: return @"Google";
+    case UIReturnKeyRoute: return @"Route";
+    case UIReturnKeyJoin: return @"Join";
+    case UIReturnKeyEmergencyCall: return @"Emergency Call";
+    default: return @"Done";
+  }
+}
+
+static BOOL RNImeTextInputIsNumberPad(UIKeyboardType keyboardType)
+{
+  return keyboardType == UIKeyboardTypeNumberPad || keyboardType == UIKeyboardTypePhonePad ||
+      keyboardType == UIKeyboardTypeDecimalPad || keyboardType == UIKeyboardTypeASCIICapableNumberPad;
+}
+
+static UITextSmartInsertDeleteType RNImeTextInputSmartInsertDelete(const std::string &value)
+{
+  if (value == "yes") return UITextSmartInsertDeleteTypeYes;
+  if (value == "no") return UITextSmartInsertDeleteTypeNo;
+  // "auto" and the empty default both mean "leave UIKit alone", which is not
+  // the same as an explicit yes — the default also covers paste heuristics.
+  return UITextSmartInsertDeleteTypeDefault;
+}
+
+static UITextFieldViewMode RNImeTextInputViewMode(const std::string &value)
+{
+  if (value == "while-editing") return UITextFieldViewModeWhileEditing;
+  if (value == "unless-editing") return UITextFieldViewModeUnlessEditing;
+  if (value == "always") return UITextFieldViewModeAlways;
+  return UITextFieldViewModeNever;
+}
+
 static UIKeyboardAppearance RNImeTextInputKeyboardAppearance(const std::string &value)
 {
   if (value == "light") return UIKeyboardAppearanceLight;
@@ -101,14 +166,85 @@ static UIKeyboardAppearance RNImeTextInputKeyboardAppearance(const std::string &
   return UIKeyboardAppearanceDefault;
 }
 
+#pragma mark - Backing views
+
+/*
+ * `contextMenuHidden` has no UIKit property behind it — refusing the edit menu
+ * means overriding `canPerformAction:`, which is the only reason the backing
+ * views are subclassed at all. React Native core subclasses for the same
+ * reason (`RCTUITextField` / `RCTUITextView`).
+ *
+ * Everything else stays stock: the composition rules live in the component
+ * view, not here, so these two add no behaviour that could interfere with them.
+ */
+
+@interface RNImeTextField : UITextField
+@property (nonatomic, assign) BOOL contextMenuHidden;
+@end
+
+@interface RNImeTextView : UITextView
+@property (nonatomic, assign) BOOL contextMenuHidden;
+@end
+
+/*
+ * The two implementations below are deliberately identical. iOS 17 moved
+ * autofill out of `canPerformAction:` and into the menu builder, so hiding the
+ * menu takes both halves. The builder half is not unit-tested — a
+ * `UIMenuBuilder` cannot be constructed outside a live menu presentation.
+ */
+
+@implementation RNImeTextField
+
+- (BOOL)canPerformAction:(SEL)action withSender:(id)sender
+{
+  if (_contextMenuHidden) {
+    return NO;
+  }
+  return [super canPerformAction:action withSender:sender];
+}
+
+- (void)buildMenuWithBuilder:(id<UIMenuBuilder>)builder
+{
+  if (@available(iOS 17.0, *)) {
+    if (_contextMenuHidden) {
+      [builder removeMenuForIdentifier:UIMenuAutoFill];
+    }
+  }
+  [super buildMenuWithBuilder:builder];
+}
+
+@end
+
+@implementation RNImeTextView
+
+- (BOOL)canPerformAction:(SEL)action withSender:(id)sender
+{
+  if (_contextMenuHidden) {
+    return NO;
+  }
+  return [super canPerformAction:action withSender:sender];
+}
+
+- (void)buildMenuWithBuilder:(id<UIMenuBuilder>)builder
+{
+  if (@available(iOS 17.0, *)) {
+    if (_contextMenuHidden) {
+      [builder removeMenuForIdentifier:UIMenuAutoFill];
+    }
+  }
+  [super buildMenuWithBuilder:builder];
+}
+
+@end
+
 #pragma mark - View
 
 @interface RNImeTextInput () <RCTRNImeTextInputViewProtocol, UITextViewDelegate, UITextFieldDelegate>
 @end
 
 @implementation RNImeTextInput {
-  UITextField *_textField;
-  UITextView *_textView;
+  RNImeTextField *_textField;
+  RNImeTextView *_textView;
   UILabel *_placeholderLabel;
 
   RNImeTextInputAttributes *_attributes;
@@ -130,6 +266,9 @@ static UIKeyboardAppearance RNImeTextInputKeyboardAppearance(const std::string &
   BOOL _selectTextOnFocus;
   BOOL _clearTextOnFocus;
   BOOL _caretHidden;
+  BOOL _contextMenuHidden;
+  BOOL _allowFontScaling;
+  CGFloat _maxFontSizeMultiplier;
   BOOL _autoCorrect;
   BOOL _enablesReturnKeyAutomatically;
   NSInteger _maxLength;
@@ -143,6 +282,15 @@ static UIKeyboardAppearance RNImeTextInputKeyboardAppearance(const std::string &
   UITextAutocapitalizationType _autocapitalizationType;
   UIKeyboardAppearance _keyboardAppearance;
   UITextContentType _textContentType;
+  UITextSmartInsertDeleteType _smartInsertDelete;
+  /// nil when no descriptor was given — an empty one is not the same as none.
+  UITextInputPasswordRules *_passwordRules;
+  /// `UITextView` has no clear button, so this only reaches the text field.
+  UITextFieldViewMode _clearButtonMode;
+  NSString *_accessoryButtonLabel;
+  /// The title currently drawn on the default accessory button, nil when there
+  /// is none. Kept so the keyboard is only reloaded when it actually changes.
+  NSString *_accessoryButtonTitle;
 
   CGSize _lastReportedContentSize;
   /// The Fabric state this view publishes its content size into. Retained as a
@@ -176,6 +324,9 @@ static UIKeyboardAppearance RNImeTextInputKeyboardAppearance(const std::string &
     _jsText = nil;
     _editable = YES;
     _autoCorrect = YES;
+    // React Native's default: text follows the system text size setting.
+    _allowFontScaling = YES;
+    _maxFontSizeMultiplier = 0;
     _maxLength = 0;
     _submitBehavior = "default";
     _spellCheck = "auto";
@@ -184,6 +335,8 @@ static UIKeyboardAppearance RNImeTextInputKeyboardAppearance(const std::string &
     _returnKeyType = UIReturnKeyDefault;
     _autocapitalizationType = UITextAutocapitalizationTypeSentences;
     _keyboardAppearance = UIKeyboardAppearanceDefault;
+    _smartInsertDelete = UITextSmartInsertDeleteTypeDefault;
+    _clearButtonMode = UITextFieldViewModeNever;
     _lastReportedContentSize = CGSizeZero;
 
     self.clipsToBounds = YES;
@@ -247,7 +400,7 @@ static UIKeyboardAppearance RNImeTextInputKeyboardAppearance(const std::string &
   _textField = nil;
 
   if (_multiline) {
-    UITextView *view = [UITextView new];
+    RNImeTextView *view = [RNImeTextView new];
     view.delegate = self;
     view.backgroundColor = UIColor.clearColor;
     // `UITextView` insets its text by default; React Native's TextInput does
@@ -259,7 +412,7 @@ static UIKeyboardAppearance RNImeTextInputKeyboardAppearance(const std::string &
     _textView = view;
     [self insertSubview:view atIndex:0];
   } else {
-    UITextField *field = [UITextField new];
+    RNImeTextField *field = [RNImeTextField new];
     field.delegate = self;
     field.backgroundColor = UIColor.clearColor;
     [field addTarget:self action:@selector(textFieldDidChange) forControlEvents:UIControlEventEditingChanged];
@@ -273,6 +426,8 @@ static UIKeyboardAppearance RNImeTextInputKeyboardAppearance(const std::string &
   [self applySecureTextEntry];
   [self applyKeyboardTraits];
   [self applyTint];
+  [self applyContextMenuHidden];
+  [self applyDefaultInputAccessoryView];
   [self setTextValue:previousText fromJS:YES];
 
   if (wasFirstResponder) {
@@ -399,6 +554,93 @@ static UIKeyboardAppearance RNImeTextInputKeyboardAppearance(const std::string &
  disappears. Deferring costs nothing: the attributes land the moment the
  conversion commits, and `handleTextChanged` calls back in.
  */
+/**
+ The system text size setting as a scale factor.
+
+ The table is React Native's (`RCTUtils.mm`'s `RCTFontSizeMultiplier`), so a
+ field renders at the same size as the `Text` next to it. React Native reads it
+ with the *application's* category; this reads the view's own, which is the same
+ value in an ordinary app and does not need `RCTSharedApplication()` — that is
+ nil in a unit test bundle, where the lookup below would throw.
+
+ An unknown category means no scaling. React Native's dictionary lookup yields 0
+ for one instead, which would resolve to a zero-point font; `unspecified` is
+ exactly what a view reports before it joins a hierarchy.
+ */
+- (CGFloat)fontSizeMultiplierForContentSizeCategory:(UIContentSizeCategory)category
+{
+  static NSDictionary<UIContentSizeCategory, NSNumber *> *mapping;
+  static dispatch_once_t onceToken;
+  dispatch_once(&onceToken, ^{
+    mapping = @{
+      UIContentSizeCategoryExtraSmall : @0.823,
+      UIContentSizeCategorySmall : @0.882,
+      UIContentSizeCategoryMedium : @0.941,
+      UIContentSizeCategoryLarge : @1.0,
+      UIContentSizeCategoryExtraLarge : @1.118,
+      UIContentSizeCategoryExtraExtraLarge : @1.235,
+      UIContentSizeCategoryExtraExtraExtraLarge : @1.353,
+      UIContentSizeCategoryAccessibilityMedium : @1.786,
+      UIContentSizeCategoryAccessibilityLarge : @2.143,
+      UIContentSizeCategoryAccessibilityExtraLarge : @2.643,
+      UIContentSizeCategoryAccessibilityExtraExtraLarge : @3.143,
+      UIContentSizeCategoryAccessibilityExtraExtraExtraLarge : @3.571,
+    };
+  });
+
+  NSNumber *multiplier = category != nil ? mapping[category] : nil;
+  return multiplier != nil ? multiplier.doubleValue : 1.0;
+}
+
+/**
+ Applies `allowFontScaling` and `maxFontSizeMultiplier` to that scale.
+
+ A cap below 1 is ignored rather than shrinking the text, matching
+ `RCTAttributedTextUtils.mm`'s `RCTEffectiveFontSizeMultiplierFromTextAttributes`.
+ */
+- (CGFloat)effectiveFontSizeMultiplierForBase:(CGFloat)base
+{
+  if (!_allowFontScaling) {
+    return 1.0;
+  }
+  if (_maxFontSizeMultiplier >= 1.0) {
+    return MIN(_maxFontSizeMultiplier, base);
+  }
+  return base;
+}
+
+- (CGFloat)currentFontSizeMultiplier
+{
+  return [self effectiveFontSizeMultiplierForBase:
+                   [self fontSizeMultiplierForContentSizeCategory:
+                             self.traitCollection.preferredContentSizeCategory]];
+}
+
+/**
+ Re-resolves the font after the system text size changed.
+
+ Nothing in the props changes when the setting does, so this has to write the
+ attributes itself — and it goes through `applyTextAttributes`, which holds them
+ back while a conversion is open. A text size change is exactly the kind of
+ update that arrives unannounced mid-input.
+ */
+- (void)contentSizeCategoryDidChange
+{
+  _attributes.fontSizeMultiplier = [self currentFontSizeMultiplier];
+  [self applyTextAttributes];
+  [self applyPlaceholder];
+}
+
+- (void)traitCollectionDidChange:(UITraitCollection *)previousTraitCollection
+{
+  [super traitCollectionDidChange:previousTraitCollection];
+
+  if (![self.traitCollection.preferredContentSizeCategory
+          isEqualToString:previousTraitCollection.preferredContentSizeCategory]) {
+    [self contentSizeCategoryDidChange];
+  }
+}
+
 - (void)applyTextAttributes
 {
   if ([self input].markedTextRange != nil) {
@@ -471,6 +713,68 @@ static UIKeyboardAppearance RNImeTextInputKeyboardAppearance(const std::string &
   _textField.tintColor = color;
 }
 
+/**
+ Gives a number pad the return key UIKit does not draw for it.
+
+ A number pad has no return key at all, so without this a field using one cannot
+ be dismissed from the keyboard — React Native adds the same toolbar for the
+ same reason (`RCTTextInputComponentView`'s `setDefaultInputAccessoryView`).
+
+ React Native skips this when `inputAccessoryViewID` is set, letting the
+ `InputAccessoryView` component win. That prop is not supported here, so there
+ is nothing to defer to.
+ */
+- (void)applyDefaultInputAccessoryView
+{
+  BOOL hasLabel = _accessoryButtonLabel.length > 0;
+  BOOL shouldHave =
+      RNImeTextInputIsNumberPad(_keyboardType) && (hasLabel || RNImeTextInputReturnKeyIsLabelled(_returnKeyType));
+  NSString *title = shouldHave ? (hasLabel ? _accessoryButtonLabel : RNImeTextInputReturnKeyTitle(_returnKeyType)) : nil;
+
+  UIView *accessory = nil;
+  if (title != nil) {
+    UIToolbar *toolbar = [UIToolbar new];
+    [toolbar sizeToFit];
+    UIBarButtonItem *space = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemFlexibleSpace
+                                                                          target:nil
+                                                                          action:nil];
+    UIBarButtonItem *done = [[UIBarButtonItem alloc] initWithTitle:title
+                                                             style:UIBarButtonItemStylePlain
+                                                            target:self
+                                                            action:@selector(handleAccessoryDoneButton)];
+    toolbar.items = @[ space, done ];
+    accessory = toolbar;
+  }
+
+  // Written unconditionally: `rebuildInput` hands over fresh views that need it
+  // attached even when nothing about the title changed.
+  _textView.inputAccessoryView = accessory;
+  _textField.inputAccessoryView = accessory;
+
+  BOOL changed = !(title == _accessoryButtonTitle || [title isEqualToString:_accessoryButtonTitle]);
+  _accessoryButtonTitle = title;
+  if (changed && [self input].isFirstResponder) {
+    [[self input] reloadInputViews];
+  }
+}
+
+- (void)handleAccessoryDoneButton
+{
+  if (_eventEmitter != nullptr) {
+    [self emitter].onSubmit({.text = RCTStringFromNSString([self currentText])});
+  }
+  // The same rule the return key follows: only an explicit 'submit' keeps focus.
+  if (_submitBehavior != "submit") {
+    [[self input] resignFirstResponder];
+  }
+}
+
+- (void)applyContextMenuHidden
+{
+  _textView.contextMenuHidden = _contextMenuHidden;
+  _textField.contextMenuHidden = _contextMenuHidden;
+}
+
 - (void)applyKeyboardTraits
 {
   UITextSpellCheckingType spell;
@@ -492,6 +796,8 @@ static UIKeyboardAppearance RNImeTextInputKeyboardAppearance(const std::string &
     _textView.keyboardAppearance = _keyboardAppearance;
     _textView.enablesReturnKeyAutomatically = _enablesReturnKeyAutomatically;
     _textView.textContentType = _textContentType;
+    _textView.smartInsertDeleteType = _smartInsertDelete;
+    _textView.passwordRules = _passwordRules;
   }
   if (_textField != nil) {
     _textField.keyboardType = _keyboardType;
@@ -502,6 +808,12 @@ static UIKeyboardAppearance RNImeTextInputKeyboardAppearance(const std::string &
     _textField.keyboardAppearance = _keyboardAppearance;
     _textField.enablesReturnKeyAutomatically = _enablesReturnKeyAutomatically;
     _textField.textContentType = _textContentType;
+    _textField.smartInsertDeleteType = _smartInsertDelete;
+    _textField.passwordRules = _passwordRules;
+    // The clear button routes through `UIControlEventEditingChanged`, the same
+    // target installed in `rebuildInput`, so clearing reaches `onChangeText`
+    // exactly as typing does.
+    _textField.clearButtonMode = _clearButtonMode;
   }
 
   // Traits only take effect on a visible keyboard after a reload.
@@ -888,8 +1200,13 @@ static UIKeyboardAppearance RNImeTextInputKeyboardAppearance(const std::string &
     }
   }
 
+  // Read before the attributes are built: the multiplier below depends on them.
+  _allowFontScaling = newProps.allowFontScaling;
+  _maxFontSizeMultiplier = newProps.maxFontSizeMultiplier;
+
   RNImeTextInputAttributes *attributes = [_attributes copy];
   attributes.fontSize = newProps.fontSize > 0 ? newProps.fontSize : 17;
+  attributes.fontSizeMultiplier = [self currentFontSizeMultiplier];
   attributes.fontWeight = RNImeTextInputFontWeight(newProps.fontWeight);
   attributes.fontFamily = RCTNSStringFromStringNilIfEmpty(newProps.fontFamily);
   attributes.italic = newProps.fontStyle == "italic";
@@ -938,12 +1255,20 @@ static UIKeyboardAppearance RNImeTextInputKeyboardAppearance(const std::string &
     [self applyTint];
   }
 
+  if (old == nullptr || newProps.contextMenuHidden != old->contextMenuHidden) {
+    _contextMenuHidden = newProps.contextMenuHidden;
+    [self applyContextMenuHidden];
+  }
+
   if (old == nullptr || newProps.keyboardType != old->keyboardType ||
       newProps.returnKeyType != old->returnKeyType || newProps.autoCapitalize != old->autoCapitalize ||
       newProps.autoCorrect != old->autoCorrect || newProps.spellCheck != old->spellCheck ||
       newProps.keyboardAppearance != old->keyboardAppearance ||
       newProps.enablesReturnKeyAutomatically != old->enablesReturnKeyAutomatically ||
-      newProps.textContentType != old->textContentType) {
+      newProps.textContentType != old->textContentType ||
+      newProps.smartInsertDelete != old->smartInsertDelete || newProps.passwordRules != old->passwordRules ||
+      newProps.clearButtonMode != old->clearButtonMode ||
+      newProps.inputAccessoryViewButtonLabel != old->inputAccessoryViewButtonLabel) {
     _keyboardType = RNImeTextInputKeyboardType(newProps.keyboardType);
     _returnKeyType = RNImeTextInputReturnKeyType(newProps.returnKeyType);
     _autocapitalizationType = RNImeTextInputAutocapitalization(newProps.autoCapitalize);
@@ -957,7 +1282,17 @@ static UIKeyboardAppearance RNImeTextInputKeyboardAppearance(const std::string &
     _textContentType = newProps.textContentType.empty()
         ? nil
         : RCTUITextContentTypeFromString(newProps.textContentType);
+    _smartInsertDelete = RNImeTextInputSmartInsertDelete(newProps.smartInsertDelete);
+    // An empty descriptor produces a rules object that suppresses the
+    // strong-password suggestion, so "none given" has to stay nil.
+    _passwordRules = newProps.passwordRules.empty()
+        ? nil
+        : [UITextInputPasswordRules passwordRulesWithDescriptor:RCTNSStringFromString(newProps.passwordRules)];
+    _clearButtonMode = RNImeTextInputViewMode(newProps.clearButtonMode);
+    _accessoryButtonLabel = RCTNSStringFromString(newProps.inputAccessoryViewButtonLabel);
     [self applyKeyboardTraits];
+    // Depends on the keyboard and return key just applied, so it follows them.
+    [self applyDefaultInputAccessoryView];
   }
 
   _maxLength = newProps.maxLength;
@@ -1004,6 +1339,12 @@ static UIKeyboardAppearance RNImeTextInputKeyboardAppearance(const std::string &
   _pendingAttributeApply = NO;
   _didAutoFocus = NO;
   _lastReportedContentSize = CGSizeZero;
+  // A recycled view keeps its backing views, so the toolbar has to be taken off
+  // explicitly — the next mount may not want one.
+  _accessoryButtonLabel = nil;
+  _accessoryButtonTitle = nil;
+  _textView.inputAccessoryView = nil;
+  _textField.inputAccessoryView = nil;
   [self setTextValue:@"" fromJS:YES];
 }
 

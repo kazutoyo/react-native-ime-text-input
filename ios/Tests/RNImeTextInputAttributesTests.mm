@@ -167,6 +167,57 @@
   XCTAssertEqualObjects([_attributes attributes][NSForegroundColorAttributeName], UIColor.redColor);
 }
 
+#pragma mark - Dynamic Type
+
+- (void)testTheFontSizeIsScaledByTheMultiplier
+{
+  _attributes.fontSize = 20;
+  _attributes.fontSizeMultiplier = 1.5;
+
+  XCTAssertEqual(_attributes.font.pointSize, 30);
+}
+
+- (void)testTheMultiplierReachesANamedFamilyToo
+{
+  // The named-family branch resolves its own font, so it is the one that goes
+  // on scaling nothing if the multiplier is only applied to the system font.
+  _attributes.fontFamily = @"Avenir";
+  _attributes.fontSize = 20;
+  _attributes.fontSizeMultiplier = 1.5;
+
+  XCTAssertEqual(_attributes.font.pointSize, 30);
+}
+
+- (void)testTheLineHeightIsScaledByTheMultiplier
+{
+  // React Native scales it alongside the font
+  // (`RCTAttributedTextUtils.mm:229-232`); leaving it fixed would crowd the
+  // lines together exactly when the text got bigger.
+  _attributes.lineHeight = 26;
+  _attributes.fontSizeMultiplier = 2;
+
+  NSParagraphStyle *style = [_attributes attributes][NSParagraphStyleAttributeName];
+
+  XCTAssertEqual(style.minimumLineHeight, 52);
+  XCTAssertEqual(style.maximumLineHeight, 52);
+}
+
+- (void)testLetterSpacingIsNotScaled
+{
+  // React Native leaves kerning alone, and so does this.
+  _attributes.letterSpacing = 1.5;
+  _attributes.fontSizeMultiplier = 2;
+
+  XCTAssertEqualObjects([_attributes attributes][NSKernAttributeName], @(1.5));
+}
+
+- (void)testTheMultiplierDefaultsToNoScaling
+{
+  _attributes.fontSize = 20;
+
+  XCTAssertEqual(_attributes.font.pointSize, 20);
+}
+
 #pragma mark - Equality
 
 - (void)testTwoDefaultInstancesAreEqual
@@ -181,6 +232,17 @@
   _attributes.color = UIColor.blueColor;
 
   XCTAssertTrue([_attributes isEqualToAttributes:[_attributes copy]]);
+}
+
+- (void)testAChangedMultiplierIsNoticed
+{
+  // Equality is what decides whether a text-size change reaches the field at
+  // all; if the multiplier were left out, growing the system text size would
+  // silently do nothing.
+  RNImeTextInputAttributes *other = [_attributes copy];
+  other.fontSizeMultiplier = 1.5;
+
+  XCTAssertFalse([_attributes isEqualToAttributes:other]);
 }
 
 - (void)testADifferenceIsNoticed

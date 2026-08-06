@@ -52,6 +52,10 @@ export interface NativeProps extends ViewProps {
 
   // -- Typography --
 
+  /** Whether the font follows the system text size setting. */
+  allowFontScaling?: CodegenTypes.WithDefault<boolean, true>;
+  /** Caps that scaling. 0 — and anything below 1 — means no cap. */
+  maxFontSizeMultiplier?: CodegenTypes.WithDefault<CodegenTypes.Double, 0>;
   fontSize?: CodegenTypes.WithDefault<CodegenTypes.Double, 17>;
   /**
    * Every enum-ish prop here is a plain string rather than a literal union.
@@ -98,6 +102,8 @@ export interface NativeProps extends ViewProps {
   clearTextOnFocus?: CodegenTypes.WithDefault<boolean, false>;
   submitBehavior?: string;
   caretHidden?: CodegenTypes.WithDefault<boolean, false>;
+  /** Suppresses the cut/copy/paste edit menu, as React Native core does. */
+  contextMenuHidden?: CodegenTypes.WithDefault<boolean, false>;
   selectionColor?: ColorValue;
 
   // -- Keyboard --
@@ -111,6 +117,17 @@ export interface NativeProps extends ViewProps {
   keyboardAppearance?: string;
   enablesReturnKeyAutomatically?: CodegenTypes.WithDefault<boolean, false>;
   textContentType?: string;
+  /** 'auto' leaves UIKit's own default, which is not the same as 'yes'. */
+  smartInsertDelete?: string;
+  /** A password-rules descriptor; empty means none. */
+  passwordRules?: string;
+  /** Single-line only — `UITextView` has no clear button. Empty means 'never'. */
+  clearButtonMode?: string;
+  /**
+   * Title for the Done button UIKit gets no return key for. Empty falls back to
+   * a title derived from `returnKeyType`, as React Native core does.
+   */
+  inputAccessoryViewButtonLabel?: string;
 
   // -- Events --
   //
