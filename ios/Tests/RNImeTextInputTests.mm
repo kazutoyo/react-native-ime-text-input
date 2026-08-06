@@ -60,6 +60,7 @@ struct TestProps {
   std::string inputAccessoryViewButtonLabel;
   bool allowFontScaling = true;
   double maxFontSizeMultiplier = 0;
+  std::string inputAccessoryViewID;
 };
 
 @implementation RNImeTextInputTests {
@@ -115,6 +116,7 @@ struct TestProps {
   next->inputAccessoryViewButtonLabel = _values.inputAccessoryViewButtonLabel;
   next->allowFontScaling = _values.allowFontScaling;
   next->maxFontSizeMultiplier = _values.maxFontSizeMultiplier;
+  next->inputAccessoryViewID = _values.inputAccessoryViewID;
 
   [_view updateProps:next oldProps:_props];
   _props = next;
@@ -574,6 +576,88 @@ struct TestProps {
 #pragma clang diagnostic pop
 
   XCTAssertTrue([[_view input] isFirstResponder]);
+}
+
+#pragma mark - InputAccessoryView
+
+/**
+ React Native's own discovery predicate, from `RCTInputAccessoryComponentView`'s
+ `RCTFindTextInputWithNativeId` (lines 23-41). It walks the window and matches
+ on duck typing alone — a view that answers to `inputAccessoryViewID` and
+ `setInputAccessoryView:` and carries the right id. Reproduced rather than
+ mocked, because satisfying exactly this is the whole contract: nothing else in
+ this library reads the prop back.
+ */
+- (BOOL)isFoundByAnInputAccessoryViewWithID:(NSString *)nativeID
+{
+  UIView *view = (UIView *)[_view input];
+  if (![view respondsToSelector:@selector(inputAccessoryViewID)] ||
+      ![view respondsToSelector:@selector(setInputAccessoryView:)]) {
+    return NO;
+  }
+  return [[view valueForKey:@"inputAccessoryViewID"] isEqualToString:nativeID];
+}
+
+- (void)testTheFieldIsFoundByAnInputAccessoryViewCarryingTheSameID
+{
+  [self applyProps:^(TestProps &props) {
+    props.inputAccessoryViewID = "composer";
+  }];
+
+  XCTAssertTrue([self isFoundByAnInputAccessoryViewWithID:@"composer"]);
+}
+
+- (void)testTheFieldIsNotFoundByAnInputAccessoryViewWithADifferentID
+{
+  [self applyProps:^(TestProps &props) {
+    props.inputAccessoryViewID = "composer";
+  }];
+
+  XCTAssertFalse([self isFoundByAnInputAccessoryViewWithID:@"somethingElse"]);
+}
+
+- (void)testTheIDSurvivesSwitchingBackingViews
+{
+  [self applyProps:^(TestProps &props) {
+    props.inputAccessoryViewID = "composer";
+  }];
+
+  [self applyProps:^(TestProps &props) {
+    props.multiline = false;
+  }];
+
+  XCTAssertTrue([self isFoundByAnInputAccessoryViewWithID:@"composer"]);
+}
+
+- (void)testAnIDSuppressesTheDefaultNumberPadToolbar
+{
+  // React Native returns early from `setDefaultInputAccessoryView` for the same
+  // reason: the `InputAccessoryView` component owns the slot, and a toolbar
+  // written here would take it from under the accessory content.
+  [self applyProps:^(TestProps &props) {
+    props.keyboardType = "number-pad";
+    props.returnKeyType = "done";
+    props.inputAccessoryViewID = "composer";
+  }];
+
+  XCTAssertNil([[_view input] inputAccessoryView]);
+}
+
+- (void)testAnAccessoryViewAssignedFromOutsideIsNotClobbered
+{
+  [self applyProps:^(TestProps &props) {
+    props.inputAccessoryViewID = "composer";
+  }];
+  UIView *content = [UIView new];
+  // What React Native's component does once it has found the field.
+  ((UITextView *)[_view input]).inputAccessoryView = content;
+
+  [self applyProps:^(TestProps &props) {
+    props.keyboardType = "number-pad";
+    props.returnKeyType = "done";
+  }];
+
+  XCTAssertEqualObjects(((UITextView *)[_view input]).inputAccessoryView, content);
 }
 
 #pragma mark - Dynamic Type

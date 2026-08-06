@@ -23,6 +23,12 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   all. The toolbar appears when `returnKeyType` names a key or the new
   `inputAccessoryViewButtonLabel` prop gives it a title, and its button submits
   and blurs exactly as the return key does.
+- `inputAccessoryViewID` now connects a field to React Native's
+  `InputAccessoryView`. Nothing reads the prop back: React Native's component
+  walks the window for a view answering to `inputAccessoryViewID` and
+  `setInputAccessoryView:` and assigns itself, so carrying the id is the whole
+  contract. When one is set, the default number-pad toolbar steps aside rather
+  than taking the slot from the accessory content.
 
 ### Fixed
 
@@ -38,9 +44,13 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ### Changed
 
 - The "ignored on iOS" documentation no longer claims every prop in that list
-  lacks a UIKit equivalent. `inputAccessoryViewID` and `scrollEnabled` are
-  implementable and simply are not implemented yet; the rest are Android-only or
-  genuinely absent from UIKit.
+  lacks a UIKit equivalent. `onScroll` and `scrollEnabled` are implementable and
+  simply are not implemented yet; the rest are Android-only or genuinely absent
+  from UIKit.
+- The spec/native sync check strips comments before searching. A prop mentioned
+  only in prose — including one documented as *not* supported — satisfied the
+  search and passed vacuously, which is exactly what happened to
+  `inputAccessoryViewID` before this change.
 
 ## [0.2.1] - 2026-08-06
 

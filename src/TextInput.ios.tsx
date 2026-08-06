@@ -163,6 +163,7 @@ export function TextInput(props: TextInputProps) {
     smartInsertDelete,
     contextMenuHidden,
     inputAccessoryViewButtonLabel,
+    inputAccessoryViewID,
     allowFontScaling,
     maxFontSizeMultiplier,
     textAlign,
@@ -273,6 +274,7 @@ export function TextInput(props: TextInputProps) {
       )}
       clearButtonMode={str(clearButtonMode)}
       inputAccessoryViewButtonLabel={str(inputAccessoryViewButtonLabel)}
+      inputAccessoryViewID={str(inputAccessoryViewID)}
       passwordRules={str(passwordRules)}
       // Tri-state for the same reason as `spellCheck`: UIKit's default is not
       // the same as an explicit "yes", and a bare boolean cannot say "not set".

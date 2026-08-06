@@ -128,6 +128,12 @@ export interface NativeProps extends ViewProps {
    * a title derived from `returnKeyType`, as React Native core does.
    */
   inputAccessoryViewButtonLabel?: string;
+  /**
+   * Matched against an `InputAccessoryView`'s `nativeID`. React Native's own
+   * component walks the window looking for a field carrying this, so the value
+   * only has to reach the UIKit view — nothing here reads it back.
+   */
+  inputAccessoryViewID?: string;
 
   // -- Events --
   //

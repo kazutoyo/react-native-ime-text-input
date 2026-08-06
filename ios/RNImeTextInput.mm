@@ -178,12 +178,22 @@ static UIKeyboardAppearance RNImeTextInputKeyboardAppearance(const std::string &
  * view, not here, so these two add no behaviour that could interfere with them.
  */
 
+/*
+ * `inputAccessoryViewID` is never read back here. React Native's
+ * `InputAccessoryView` walks the window looking for a view that answers to this
+ * property and to `setInputAccessoryView:`, and assigns itself
+ * (`RCTInputAccessoryComponentView`'s `RCTFindTextInputWithNativeId`). Carrying
+ * the id is the entire contract; UIKit gives `setInputAccessoryView:` for free.
+ */
+
 @interface RNImeTextField : UITextField
 @property (nonatomic, assign) BOOL contextMenuHidden;
+@property (nonatomic, copy, nullable) NSString *inputAccessoryViewID;
 @end
 
 @interface RNImeTextView : UITextView
 @property (nonatomic, assign) BOOL contextMenuHidden;
+@property (nonatomic, copy, nullable) NSString *inputAccessoryViewID;
 @end
 
 /*
@@ -288,6 +298,7 @@ static UIKeyboardAppearance RNImeTextInputKeyboardAppearance(const std::string &
   /// `UITextView` has no clear button, so this only reaches the text field.
   UITextFieldViewMode _clearButtonMode;
   NSString *_accessoryButtonLabel;
+  NSString *_accessoryViewID;
   /// The title currently drawn on the default accessory button, nil when there
   /// is none. Kept so the keyboard is only reloaded when it actually changes.
   NSString *_accessoryButtonTitle;
@@ -427,6 +438,8 @@ static UIKeyboardAppearance RNImeTextInputKeyboardAppearance(const std::string &
   [self applyKeyboardTraits];
   [self applyTint];
   [self applyContextMenuHidden];
+  // Before the default toolbar: it steps aside when an id is present.
+  [self applyAccessoryViewID];
   [self applyDefaultInputAccessoryView];
   [self setTextValue:previousText fromJS:YES];
 
@@ -720,12 +733,17 @@ static UIKeyboardAppearance RNImeTextInputKeyboardAppearance(const std::string &
  be dismissed from the keyboard — React Native adds the same toolbar for the
  same reason (`RCTTextInputComponentView`'s `setDefaultInputAccessoryView`).
 
- React Native skips this when `inputAccessoryViewID` is set, letting the
- `InputAccessoryView` component win. That prop is not supported here, so there
- is nothing to defer to.
+ An `inputAccessoryViewID` takes the slot instead, and this leaves it alone
+ entirely: the `InputAccessoryView` component assigns itself directly to the
+ UIKit view, so writing here — even a nil — would take the accessory content
+ back off on the next prop update.
  */
 - (void)applyDefaultInputAccessoryView
 {
+  if (_accessoryViewID.length > 0) {
+    return;
+  }
+
   BOOL hasLabel = _accessoryButtonLabel.length > 0;
   BOOL shouldHave =
       RNImeTextInputIsNumberPad(_keyboardType) && (hasLabel || RNImeTextInputReturnKeyIsLabelled(_returnKeyType));
@@ -773,6 +791,12 @@ static UIKeyboardAppearance RNImeTextInputKeyboardAppearance(const std::string &
 {
   _textView.contextMenuHidden = _contextMenuHidden;
   _textField.contextMenuHidden = _contextMenuHidden;
+}
+
+- (void)applyAccessoryViewID
+{
+  _textView.inputAccessoryViewID = _accessoryViewID;
+  _textField.inputAccessoryViewID = _accessoryViewID;
 }
 
 - (void)applyKeyboardTraits
@@ -1268,7 +1292,8 @@ static UIKeyboardAppearance RNImeTextInputKeyboardAppearance(const std::string &
       newProps.textContentType != old->textContentType ||
       newProps.smartInsertDelete != old->smartInsertDelete || newProps.passwordRules != old->passwordRules ||
       newProps.clearButtonMode != old->clearButtonMode ||
-      newProps.inputAccessoryViewButtonLabel != old->inputAccessoryViewButtonLabel) {
+      newProps.inputAccessoryViewButtonLabel != old->inputAccessoryViewButtonLabel ||
+      newProps.inputAccessoryViewID != old->inputAccessoryViewID) {
     _keyboardType = RNImeTextInputKeyboardType(newProps.keyboardType);
     _returnKeyType = RNImeTextInputReturnKeyType(newProps.returnKeyType);
     _autocapitalizationType = RNImeTextInputAutocapitalization(newProps.autoCapitalize);
@@ -1290,7 +1315,9 @@ static UIKeyboardAppearance RNImeTextInputKeyboardAppearance(const std::string &
         : [UITextInputPasswordRules passwordRulesWithDescriptor:RCTNSStringFromString(newProps.passwordRules)];
     _clearButtonMode = RNImeTextInputViewMode(newProps.clearButtonMode);
     _accessoryButtonLabel = RCTNSStringFromString(newProps.inputAccessoryViewButtonLabel);
+    _accessoryViewID = RCTNSStringFromStringNilIfEmpty(newProps.inputAccessoryViewID);
     [self applyKeyboardTraits];
+    [self applyAccessoryViewID];
     // Depends on the keyboard and return key just applied, so it follows them.
     [self applyDefaultInputAccessoryView];
   }
@@ -1343,8 +1370,13 @@ static UIKeyboardAppearance RNImeTextInputKeyboardAppearance(const std::string &
   // explicitly — the next mount may not want one.
   _accessoryButtonLabel = nil;
   _accessoryButtonTitle = nil;
+  _accessoryViewID = nil;
   _textView.inputAccessoryView = nil;
   _textField.inputAccessoryView = nil;
+  // Left behind, a stale id would let the next `InputAccessoryView` claim a
+  // field that no longer asked for one.
+  _textView.inputAccessoryViewID = nil;
+  _textField.inputAccessoryViewID = nil;
   [self setTextValue:@"" fromJS:YES];
 }
 

@@ -11,7 +11,7 @@
  *   `textBreakStrategy`, `underlineColorAndroid`), plus `blurOnSubmit`, which
  *   is React Native's own deprecated alias for `submitBehavior`.
  * - Simply not implemented here yet, though UIKit could do it and React Native
- *   core does: `inputAccessoryViewID` and `scrollEnabled` among them.
+ *   core does: `scrollEnabled` and `onScroll` among them.
  *
  * They stay in the prop type either way: only iOS is replaced, and on Android
  * and web React Native's own `TextInput` honours them. Removing them from the
@@ -28,7 +28,6 @@ export const UNSUPPORTED_PROPS = [
   'importantForAutofill',
   'inlineImageLeft',
   'inlineImagePadding',
-  'inputAccessoryViewID',
   'lineBreakStrategyIOS',
   'onScroll',
   'rejectResponderTermination',

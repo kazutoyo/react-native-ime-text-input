@@ -100,9 +100,9 @@ React Native の `TextInput` が変換中に書き込みを行い、変換を打
 
 これらを iOS で指定したときは値を無視し、`__DEV__` で prop 名ごとに1回だけ警告します。
 
-**props。** `blurOnSubmit`（`submitBehavior` を使ってください）/ `dataDetectorTypes` / `disableFullscreenUI` / `importantForAutofill` / `inlineImageLeft` / `inlineImagePadding` / `inputAccessoryViewID` / `lineBreakStrategyIOS` / `onScroll` / `rejectResponderTermination` / `returnKeyLabel` / `scrollEnabled` / `showSoftInputOnFocus` / `textBreakStrategy` / `underlineColorAndroid`
+**props。** `blurOnSubmit`（`submitBehavior` を使ってください）/ `dataDetectorTypes` / `disableFullscreenUI` / `importantForAutofill` / `inlineImageLeft` / `inlineImagePadding` / `lineBreakStrategyIOS` / `onScroll` / `rejectResponderTermination` / `returnKeyLabel` / `scrollEnabled` / `showSoftInputOnFocus` / `textBreakStrategy` / `underlineColorAndroid`
 
-上のほとんどは Android 専用か UIKit に相当するものがなく、React Native 自身の iOS 実装でも無視されます。例外は `inputAccessoryViewID` / `scrollEnabled` の2つで、UIKit にも React Native 本体にも実装はあり、本ライブラリでまだ実装していないだけです。なお `inputAccessoryViewID` が関係するのは独自のアクセサリビューだけで、return キーを持たない数字キーボードに React Native が出す既定のツールバーは実装済みです（`inputAccessoryViewButtonLabel` を参照）。
+上のほとんどは Android 専用か UIKit に相当するものがなく、React Native 自身の iOS 実装でも無視されます。例外は `onScroll` / `scrollEnabled` の2つで、UIKit にも React Native 本体にも実装はあり、本ライブラリでまだ実装していないだけです。
 
 **スタイルプロパティ。** `textTransform` / `fontVariant` / `verticalAlign` / `textAlignVertical` / `includeFontPadding`
 

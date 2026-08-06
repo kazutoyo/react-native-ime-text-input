@@ -397,6 +397,18 @@ describe('<TextInput> props reaching the native view', () => {
     expect(nativeProps().maxFontSizeMultiplier).toBe(0);
   });
 
+  it('sends inputAccessoryViewID down so an InputAccessoryView can find the field', async () => {
+    await render(<TextInput testID="input" inputAccessoryViewID="composer" />);
+
+    expect(nativeProps().inputAccessoryViewID).toBe('composer');
+  });
+
+  it('sends an empty inputAccessoryViewID when none is given', async () => {
+    await render(<TextInput testID="input" />);
+
+    expect(nativeProps().inputAccessoryViewID).toBe('');
+  });
+
   it('drops the props that do nothing on iOS, and warns', async () => {
     await render(<TextInput testID="input" scrollEnabled dataDetectorTypes="link" />);
 
