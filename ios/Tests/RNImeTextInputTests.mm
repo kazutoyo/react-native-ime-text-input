@@ -43,6 +43,7 @@ using namespace facebook::react;
 struct TestProps {
   bool multiline = true;
   std::string text;
+  std::string placeholder;
   int textRevision = 0;
   int mostRecentEventCount = 0;
   int maxLength = 0;
@@ -99,6 +100,7 @@ struct TestProps {
   auto next = std::make_shared<RNImeTextInputProps>();
   next->multiline = _values.multiline;
   next->text = _values.text;
+  next->placeholder = _values.placeholder;
   next->textRevision = _values.textRevision;
   next->mostRecentEventCount = _values.mostRecentEventCount;
   next->maxLength = _values.maxLength;
@@ -786,6 +788,57 @@ struct TestProps {
   [_view contentSizeCategoryDidChange];
 
   XCTAssertEqual(textView.font.pointSize, 20);
+}
+
+#pragma mark - Placeholder
+
+/**
+ The label the multiline placeholder is drawn with.
+
+ `UITextView` has no placeholder of its own, so one is overlaid as a sibling of
+ the text view. Found by kind rather than exposed through a test hook: the
+ label is an implementation detail, but the text it draws is not.
+ */
+- (UILabel *)placeholderLabel
+{
+  for (UIView *subview in _view.subviews) {
+    if ([subview isKindOfClass:UILabel.class]) {
+      return (UILabel *)subview;
+    }
+  }
+  return nil;
+}
+
+- (void)testThePlaceholderIsLaidOutOnTheSameLineHeightAsTheText
+{
+  [self applyProps:^(TestProps &props) {
+    props.placeholder = "メッセージを入力";
+    props.fontSize = 14;
+    props.lineHeight = 20;
+  }];
+
+  [_view layoutIfNeeded];
+
+  // The typed text sits on a 20pt line box. A placeholder laid out on the
+  // font's own line height instead draws higher, so the text visibly drops the
+  // moment the first character is typed.
+  XCTAssertEqualWithAccuracy([self placeholderLabel].frame.size.height, 20, 0.5);
+}
+
+- (void)testThePlaceholderIsTrackedLikeTheTextThatReplacesIt
+{
+  [self applyProps:^(TestProps &props) {
+    props.placeholder = "Wg";
+    props.letterSpacing = 8;
+  }];
+
+  UITextView *textView = (UITextView *)[_view input];
+  CGFloat textWidth = [@"Wg" sizeWithAttributes:textView.typingAttributes].width;
+  CGFloat placeholderWidth = [self placeholderLabel].attributedText.size.width;
+
+  // Untracked, the placeholder is narrower than the text that replaces it, so
+  // the first character typed also shifts the line sideways.
+  XCTAssertEqualWithAccuracy(placeholderWidth, textWidth, 0.5);
 }
 
 #pragma mark - Accessibility

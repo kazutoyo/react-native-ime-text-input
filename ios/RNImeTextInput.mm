@@ -690,26 +690,42 @@ static UIKeyboardAppearance RNImeTextInputKeyboardAppearance(const std::string &
     _textView.textAlignment = _attributes.textAlign;
   }
 
-  _placeholderLabel.font = _attributes.font;
-  _placeholderLabel.textAlignment = _attributes.textAlign;
+  // The placeholder is drawn with the same attributes, so it moves with them.
+  [self applyPlaceholder];
   [self setNeedsLayout];
   [self notifyContentSizeChange];
 }
 
+/**
+ The attributes the placeholder is drawn with: the field's own, with the
+ placeholder colour swapped in.
+
+ SYNC: React Native builds its placeholder the same way — `RCTUITextView`'s
+ `_placeholderTextAttributes` starts from `defaultTextAttributes` — so
+ `lineHeight` and `letterSpacing` reach the placeholder as well as the typed
+ text. Passing only the font would lay the placeholder out on the font's own
+ line height, and the text would visibly drop the moment the first character
+ was typed.
+ */
+- (NSDictionary<NSAttributedStringKey, id> *)placeholderAttributes
+{
+  NSMutableDictionary<NSAttributedStringKey, id> *attributes = [[_attributes attributes] mutableCopy];
+  attributes[NSForegroundColorAttributeName] = _placeholderColor ?: UIColor.placeholderTextColor;
+  return attributes;
+}
+
 - (void)applyPlaceholder
 {
-  UIColor *color = _placeholderColor ?: UIColor.placeholderTextColor;
-  _placeholderLabel.text = _placeholder;
-  _placeholderLabel.textColor = color;
+  // Alignment rides in the paragraph style rather than `textAlignment`:
+  // `UILabel` rewrites the paragraph style of its attributed text when that
+  // setter is used, which would drop the line height right back out again.
+  NSAttributedString *placeholder = [[NSAttributedString alloc] initWithString:_placeholder
+                                                                   attributes:[self placeholderAttributes]];
+  _placeholderLabel.attributedText = placeholder;
   _placeholderLabel.numberOfLines = _multiline ? 0 : 1;
   // `UITextField` has a real placeholder; `UITextView` does not, so a label is
   // overlaid for the multiline case.
-  _textField.attributedPlaceholder =
-      [[NSAttributedString alloc] initWithString:_placeholder
-                                      attributes:@{
-                                        NSForegroundColorAttributeName : color,
-                                        NSFontAttributeName : _attributes.font
-                                      }];
+  _textField.attributedPlaceholder = placeholder;
   [self setNeedsLayout];
 }
 
