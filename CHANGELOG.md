@@ -7,6 +7,16 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Fixed
+
+- The placeholder is now drawn with the field's full text attributes, not just
+  its font. `lineHeight` and `letterSpacing` never reached it, so a placeholder
+  laid out on the font's own line height sat higher than the text that replaced
+  it — with `fontSize: 14` and `lineHeight: 20`, 3.3pt higher — and the line
+  visibly dropped the moment the first character was typed. React Native builds
+  its placeholder the same way this now does, from the default text attributes
+  with the placeholder colour swapped in.
+
 ## [0.3.0] - 2026-08-06
 
 ### Added
