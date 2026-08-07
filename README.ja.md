@@ -125,7 +125,16 @@ Android と web は React Native の `TextInput` をそのまま描画します�
 
 ## 仕組み
 
-UIKit のビューを自前で持っているので、iOS では React Native の Fabric テキスト入力を通りません。そのうえで変換中の状態を守るために3つのルールを守っています。`markedTextRange` がある間はテキストバッファを書き換えません（これが UIKit の marked text を消す原因なので、JavaScript が渡したい値は変換が確定した瞬間に適用します。`maxLength` も同じです）。変換中はテキスト属性も書き込みません（`lineHeight` / `letterSpacing` / 斜体 / 下線に対応できるのはこのためです）。そして、実質何もしない `NSShadow` や透明な `NSBackgroundColor` を出力しません — どちらかがあると UIKit は下線の描画を黙ってやめてしまう、上流の原因の中でも最も気づきにくいものです。
+UIKit のビューを自前で持っているので、iOS では React Native の Fabric テキスト入力をまったく通りません。そのうえで、変換中の状態を守るために3つのルールを敷いています。
+
+**1. `markedTextRange` がある間はテキストバッファを書き換えない。**
+書き換えること自体が UIKit の marked text を消す原因です。JavaScript が渡したい値は保留し、変換が確定した瞬間に適用します。`maxLength` も同じ扱いです。
+
+**2. 変換中はテキスト属性も書き込まない。**
+`lineHeight` / `letterSpacing` / 斜体 / 下線に対応できるのはこのためです。システムの文字サイズ変更のように、props の変化を伴わずに届く更新も同じ経路を通ります。
+
+**3. 実質何もしない `NSShadow` や透明な `NSBackgroundColor` を出力しない。**
+どちらかが存在するだけで UIKit は下線の描画を黙ってやめます。上流の原因の中で最も気づきにくいものです。
 
 ## 検証済み
 

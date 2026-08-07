@@ -121,7 +121,16 @@ Android and web render React Native's `TextInput` unchanged. The one piece of li
 
 ## How it works
 
-The UIKit views are ours, so React Native's Fabric text input is out of the picture on iOS, and three rules keep the composition intact. The text buffer is never rewritten while `markedTextRange` is set — that is what clears UIKit's marked-text state, so a value JavaScript wants is held and applied the moment the conversion commits, and `maxLength` follows the same rule. Text attributes are never written mid-conversion either, which is what makes `lineHeight`, `letterSpacing`, italics and underlines safe to support. And no-op `NSShadow` or transparent `NSBackgroundColor` entries are never emitted: UIKit silently stops drawing the underline when either is present, the subtlest of the upstream causes.
+The UIKit views are ours, so React Native's Fabric text input is out of the picture on iOS entirely. Three rules then keep the composition intact.
+
+**1. The text buffer is never rewritten while `markedTextRange` is set.**
+Rewriting it is what clears UIKit's marked-text state. A value JavaScript wants is held and applied the moment the conversion commits; `maxLength` follows the same rule.
+
+**2. Text attributes are never written mid-conversion either.**
+That is what makes `lineHeight`, `letterSpacing`, italics and underlines safe to support. Updates that arrive without a prop change — a system text size change, say — go through the same path.
+
+**3. No-op `NSShadow` and transparent `NSBackgroundColor` entries are never emitted.**
+UIKit silently stops drawing the underline when either is present. It is the subtlest of the upstream causes.
 
 ## Verified
 
