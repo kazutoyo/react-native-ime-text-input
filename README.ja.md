@@ -1,5 +1,9 @@
 # react-native-ime-text-input
 
+[![npm](https://img.shields.io/npm/v/react-native-ime-text-input)](https://www.npmjs.com/package/react-native-ime-text-input)
+[![CI](https://github.com/kazutoyo/react-native-ime-text-input/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/kazutoyo/react-native-ime-text-input/actions/workflows/ci.yml)
+[![License](https://img.shields.io/npm/l/react-native-ime-text-input)](LICENSE)
+
 [English](README.md) | **日本語**
 
 iOS で IME の未確定文字に下線が出ない問題を直した、React Native の `TextInput` をそのまま置き換えられるライブラリです。
