@@ -1,5 +1,6 @@
-import { useEffect, useImperativeHandle, useReducer, useRef } from 'react';
+import { useEffect, useImperativeHandle, useLayoutEffect, useReducer, useRef } from 'react';
 import { StyleSheet, type TextStyle } from 'react-native';
+import TextInputState from 'react-native/Libraries/Components/TextInput/TextInputState';
 
 import { ARIA_PROPS, mapAriaProps } from './aria';
 import RNImeTextInputNativeComponent, {
@@ -217,6 +218,28 @@ export function TextInput(props: TextInputProps) {
     []
   );
 
+  // Join React Native's focus registry. `ScrollView` asks it whether a tap
+  // landed on a text input (`keyboardShouldPersistTaps`) and `Keyboard.dismiss()`
+  // asks it who to blur; an input it has never heard of makes both do nothing at
+  // all, with no error to notice. Registering has to happen in a layout effect
+  // rather than on render so the native view exists to be registered.
+  useLayoutEffect(() => {
+    const view = nativeRef.current;
+    if (!view) {
+      return;
+    }
+    TextInputState.registerInput(view);
+    return () => {
+      TextInputState.unregisterInput(view);
+      // A view that is going away cannot be blurred, but leaving it on record as
+      // focused would have the next `Keyboard.dismiss()` aim at nothing. UIKit
+      // resigns first responder by itself when the view leaves the hierarchy.
+      if (TextInputState.currentlyFocusedInput() === view) {
+        TextInputState.blurInput(view);
+      }
+    };
+  }, []);
+
   const selectionStart = selection?.start;
   const selectionEnd = selection?.end;
   useEffect(() => {
@@ -315,10 +338,12 @@ export function TextInput(props: TextInputProps) {
       }}
       onInputFocus={(event) => {
         isFocusedRef.current = true;
+        TextInputState.focusInput(nativeRef.current);
         onFocus?.(syntheticEvent({ text: event.nativeEvent.text, eventCount: 0, target: 0 }));
       }}
       onInputBlur={(event) => {
         isFocusedRef.current = false;
+        TextInputState.blurInput(nativeRef.current);
         const text = event.nativeEvent.text;
         onBlur?.(syntheticEvent({ text, eventCount: 0, target: 0 }));
         onEndEditing?.(syntheticEvent({ text, eventCount: 0, target: 0 }));

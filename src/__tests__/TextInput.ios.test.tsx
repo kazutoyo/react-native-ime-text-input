@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import { createRef } from 'react';
+import TextInputState from 'react-native/Libraries/Components/TextInput/TextInputState';
 
 import { Commands } from '../RNImeTextInputNativeComponent';
 import { TextInput } from '../TextInput';
@@ -415,5 +416,49 @@ describe('<TextInput> props reaching the native view', () => {
     expect(nativeProps().scrollEnabled).toBeUndefined();
     expect(nativeProps().dataDetectorTypes).toBeUndefined();
     expect(console.warn).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('<TextInput> TextInputState registration', () => {
+  afterEach(() => {
+    TextInputState.blurInput(TextInputState.currentlyFocusedInput());
+  });
+
+  it('reports no focused input before anything is focused', async () => {
+    await render(<TextInput testID="input" />);
+
+    expect(TextInputState.currentlyFocusedInput()).toBeNull();
+  });
+
+  it('becomes the currently focused input, recognised as a text input', async () => {
+    await render(<TextInput testID="input" />);
+
+    await fireEvent(input(), 'inputFocus', { nativeEvent: { text: '' } });
+
+    const focused = TextInputState.currentlyFocusedInput();
+    expect(focused).not.toBeNull();
+    // What ScrollView's `_keyboardIsDismissible()` asks before it will dismiss
+    // the keyboard on a tap.
+    expect(TextInputState.isTextInput(focused)).toBe(true);
+  });
+
+  it('clears the focused input on blur', async () => {
+    await render(<TextInput testID="input" />);
+
+    await fireEvent(input(), 'inputFocus', { nativeEvent: { text: '' } });
+    await fireEvent(input(), 'inputBlur', { nativeEvent: { text: '' } });
+
+    expect(TextInputState.currentlyFocusedInput()).toBeNull();
+  });
+
+  it('unregisters on unmount so a stale view is never reported as focused', async () => {
+    const view = await render(<TextInput testID="input" />);
+
+    await fireEvent(input(), 'inputFocus', { nativeEvent: { text: '' } });
+    const instance = TextInputState.currentlyFocusedInput();
+    await view.unmount();
+
+    expect(TextInputState.isTextInput(instance)).toBe(false);
+    expect(TextInputState.currentlyFocusedInput()).toBeNull();
   });
 });
