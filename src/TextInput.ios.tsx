@@ -348,28 +348,35 @@ export function TextInput(props: TextInputProps) {
         onBlur?.(syntheticEvent({ text, eventCount: 0, target: 0 }));
         onEndEditing?.(syntheticEvent({ text, eventCount: 0, target: 0 }));
       }}
+      // The bodies below are braced rather than expression-returned on purpose:
+      // React Native types a `TextInput` callback as returning `mixed`, which
+      // arrives here as `unknown`, while a codegen `DirectEventHandler` must
+      // return `void`. Handing the callback's result straight back would leak
+      // that `unknown` into the native prop.
       onSubmit={
         onSubmitEditing
-          ? (event) =>
+          ? (event) => {
               onSubmitEditing(
                 syntheticEvent({ text: event.nativeEvent.text, eventCount: 0, target: 0 })
-              )
+              );
+            }
           : undefined
       }
       onSelectionChange={
         onSelectionChange
-          ? (event) =>
+          ? (event) => {
               onSelectionChange(
                 syntheticEvent({
                   selection: { start: event.nativeEvent.start, end: event.nativeEvent.end },
                   target: 0,
                 })
-              )
+              );
+            }
           : undefined
       }
       onContentSizeChange={
         onContentSizeChange
-          ? (event) =>
+          ? (event) => {
               onContentSizeChange(
                 syntheticEvent({
                   contentSize: {
@@ -378,12 +385,15 @@ export function TextInput(props: TextInputProps) {
                   },
                   target: 0,
                 })
-              )
+              );
+            }
           : undefined
       }
       onInputKeyPress={
         onKeyPress
-          ? (event) => onKeyPress(syntheticEvent({ key: event.nativeEvent.key }))
+          ? (event) => {
+              onKeyPress(syntheticEvent({ key: event.nativeEvent.key }));
+            }
           : undefined
       }
     />

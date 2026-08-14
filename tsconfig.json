@@ -3,6 +3,10 @@
     "target": "ESNext",
     "module": "ESNext",
     "moduleResolution": "bundler",
+    // React Native 0.87 makes the Strict TypeScript API the default. Opting in
+    // here keeps this package compiling against the surface consumers will
+    // actually have, rather than the legacy types that go away after 0.88.
+    "customConditions": ["react-native", "react-native-strict-api"],
     "lib": ["ESNext", "DOM"],
     "jsx": "react-jsx",
     "outDir": "build",
