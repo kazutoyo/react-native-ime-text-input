@@ -7,6 +7,17 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Fixed
+
+- `keyboardShouldPersistTaps` and `Keyboard.dismiss()` now work around this
+  field. Both resolve "which input should I blur" through React Native's
+  `TextInputState`, and this component never registered itself there, so a
+  `ScrollView` found no focused input, decided there was no keyboard to
+  dismiss, and did nothing — silently, with no warning to notice. Focus is now
+  registered and unregistered exactly as React Native's own `TextInput` does
+  it. Tapping outside the field dismisses the keyboard again, and tapping
+  another field moves focus in a single tap.
+
 ## [0.4.0] - 2026-08-08
 
 ### Fixed

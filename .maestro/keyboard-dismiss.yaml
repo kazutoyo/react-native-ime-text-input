@@ -1,0 +1,24 @@
+# `keyboardShouldPersistTaps` blurs the focused field through React Native's
+# `TextInputState`, which only knows about fields that register themselves
+# there. An unregistered field leaves the ScrollView with nothing to blur, and
+# it silently does nothing — no error, no warning.
+#
+# Blur is read through what typing does rather than through the keyboard: a
+# covered element is still "visible" to Maestro, so the keyboard itself cannot
+# be asserted on.
+appId: com.kazutoyo-tokai-tn.example
+---
+- launchApp:
+    clearState: true
+
+- tapOn:
+    id: 'controlled'
+- inputText: 'a'
+- assertVisible: 'value: "a"'
+
+# A tap the ScrollView handles. The field must lose focus, so what is typed
+# next goes nowhere and the echo below the field stops moving.
+- tapOn:
+    text: 'react-native-ime-text-input'
+- inputText: 'b'
+- assertVisible: 'value: "a"'
