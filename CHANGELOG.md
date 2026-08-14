@@ -17,6 +17,21 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   registered and unregistered exactly as React Native's own `TextInput` does
   it. Tapping outside the field dismisses the keyboard again, and tapping
   another field moves focus in a single tap.
+- The package now compiles against React Native's [Strict TypeScript
+  API](https://reactnative.dev/docs/strict-typescript-api), which becomes the
+  default in 0.87. Two things broke under it. `TextInput` used as a type is the
+  component there, not what its ref holds, so the Android and web passthrough
+  typed its ref as the component and lost `clear` / `isFocused` /
+  `setSelection`; the ref type is now derived with `ComponentRef`, since the
+  instance type itself is not exported. And a `TextInput` callback is typed as
+  returning `mixed`, which arrives as `unknown` — handing that straight back
+  from a codegen `DirectEventHandler`, which must return `void`, is now an
+  error, so those four handlers return nothing explicitly.
+
+  `typecheck` runs under the strict conditions from now on, so the next break
+  fails in CI rather than at a consumer's upgrade. The published declarations
+  are unchanged and the source still compiles against the legacy types, so
+  nothing is required of anyone still on them.
 
 ## [0.4.0] - 2026-08-08
 

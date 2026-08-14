@@ -1,4 +1,4 @@
-import { useImperativeHandle, useRef } from 'react';
+import { useImperativeHandle, useRef, type ComponentRef } from 'react';
 import { TextInput as RNTextInput, type TextInputProps as RNTextInputProps } from 'react-native';
 
 import { setSelectionOn } from './setSelection';
@@ -13,7 +13,10 @@ import type { TextInputProps, TextInputRef } from './types';
  * straight through and keeps perfect fidelity for free.
  */
 export function TextInput({ ref, ...props }: TextInputProps) {
-  const innerRef = useRef<RNTextInput>(null);
+  // Derived from the component rather than named directly: under the Strict
+  // TypeScript API `TextInput` used as a type is the component, not what its
+  // ref holds, and the instance type behind it is not exported.
+  const innerRef = useRef<ComponentRef<typeof RNTextInput>>(null);
 
   useImperativeHandle(
     ref,
