@@ -17,6 +17,7 @@ using namespace facebook::react;
 - (void)setTextValue:(NSString *)newValue fromJS:(BOOL)fromJS;
 - (void)handleTextChanged;
 - (void)commitComposition;
+- (NSInteger)nativeEventCount;
 - (void)enforceMaxLength;
 - (CGFloat)fontSizeMultiplierForContentSizeCategory:(UIContentSizeCategory)category;
 - (CGFloat)effectiveFontSizeMultiplierForBase:(CGFloat)base;
@@ -223,6 +224,30 @@ struct TestProps {
   [_view commitComposition];
 
   XCTAssertEqualObjects([_view currentText], @"にほん");
+}
+
+- (void)testCommitCompositionIsNotReportedAsAUserEdit
+{
+  // Composing reports change events, and JavaScript echoes back the count it
+  // has seen; here it is in sync, as it is by the time a button is tapped.
+  [self beginComposing:@"ろうそく"];
+  NSInteger seenByJavaScript = [_view nativeEventCount];
+
+  [_view commitComposition];
+
+  // UIKit reports the unmark as an edit. Passing that on would outrun what
+  // JavaScript has seen, and the value it sends next — the one this call is
+  // clearing the way for — would be refused as stale.
+  XCTAssertEqual([_view nativeEventCount], seenByJavaScript);
+
+  // The real path: the insertion arrives as a prop, carrying that same count.
+  [self applyProps:^(TestProps &props) {
+    props.text = "ろうそく😄";
+    props.textRevision = 1;
+    props.mostRecentEventCount = (int)seenByJavaScript;
+  }];
+
+  XCTAssertEqualObjects([_view currentText], @"ろうそく😄");
 }
 
 - (void)testCommitCompositionDoesNothingWhenNoConversionIsOpen

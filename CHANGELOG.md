@@ -22,6 +22,14 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   field would — no candidate is chosen. iOS only; a no-op on Android and web,
   where the IME commits on its own when the value is replaced.
 
+  The confirmation is not reported as an edit. UIKit raises one for the unmark
+  even though the user did not type, and passing it on would defeat the call:
+  the bumped `eventCount` outruns what JavaScript has seen, so the value
+  JavaScript sends next — the one the confirmation is clearing the way for —
+  gets refused as stale and the insertion disappears. No `onChangeText` fires
+  for the confirmation itself either; JavaScript already holds the composed
+  text, which is emitted throughout the conversion.
+
   React Native's `TextInput` has no equivalent: writing `value` mid-conversion
   is what ends the composition there, so the insertion lands but takes the
   underline with it.

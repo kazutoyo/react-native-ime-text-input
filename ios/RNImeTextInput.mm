@@ -1467,26 +1467,41 @@ static UIKeyboardAppearance RNImeTextInputKeyboardAppearance(const std::string &
   if ([self input].markedTextRange == nil) {
     return;
   }
-  [[self input] unmarkText];
 
-  // The string is unchanged by the confirmation, so neither `UITextField` nor
-  // `UITextView` reports an edit for it. The work a real commit would have
-  // triggered from the delegates still has to run.
+  // UIKit reports the unmark as an edit, and reporting it onwards would defeat
+  // the whole call: the bumped `eventCount` outruns what JavaScript has seen,
+  // so `applyJSText` refuses the value JavaScript sends next — the very value
+  // this is clearing the way for — as stale, and the insertion disappears.
+  // `_applyingFromJS` is what tells `handleTextChanged` that an edit did not
+  // come from the user, which a JavaScript-driven confirmation did not.
+  _applyingFromJS = YES;
+  [[self input] unmarkText];
+  _applyingFromJS = NO;
+
+  // That flag also holds back the deferred work, so it runs here instead.
   BOOL flushed = [self flushPendingAfterCommit];
   [self enforceMaxLength];
   [self updatePlaceholderVisibility];
   [self notifyContentSizeChange];
   [self notifySelectionChange];
 
-  // No event unless something actually changed. JavaScript already holds the
-  // text that was on screen — it is emitted throughout the conversion — and a
-  // spurious `eventCount` bump here would make the value JavaScript sends next
-  // look stale to `applyJSText`, which is the very value this call is clearing
-  // the way for.
+  // Only a value that was waiting on the conversion is news to JavaScript. The
+  // composed text itself is not: it is emitted throughout the conversion, so
+  // JavaScript already holds it.
   if (flushed) {
     _nativeEventCount += 1;
     [self emitChangeText];
   }
+}
+
+/*
+ How many change events this view has reported. `applyJSText` compares it with
+ the count JavaScript echoes back, so the tests need it to say what "JavaScript
+ is in sync" means without reaching into an ivar.
+ */
+- (NSInteger)nativeEventCount
+{
+  return _nativeEventCount;
 }
 
 - (void)setSelection:(NSInteger)start end:(NSInteger)end
