@@ -16,6 +16,8 @@ using namespace facebook::react;
 - (NSString *)currentText;
 - (void)setTextValue:(NSString *)newValue fromJS:(BOOL)fromJS;
 - (void)handleTextChanged;
+- (void)commitComposition;
+- (NSInteger)nativeEventCount;
 - (void)enforceMaxLength;
 - (CGFloat)fontSizeMultiplierForContentSizeCategory:(UIContentSizeCategory)category;
 - (CGFloat)effectiveFontSizeMultiplierForBase:(CGFloat)base;
@@ -132,8 +134,8 @@ struct TestProps {
   XCTAssertNotNil(input.markedTextRange, @"the conversion did not start");
 }
 
-/** Commits it, and runs the callback the delegate would have run. */
-- (void)commitComposition
+/** Commits it as the keyboard would, and runs the callback the delegate would. */
+- (void)commitCompositionFromKeyboard
 {
   [[_view input] unmarkText];
   [_view handleTextChanged];
@@ -156,7 +158,7 @@ struct TestProps {
   [self beginComposing:@"にほんご"];
   [_view setTextValue:@"replaced" fromJS:YES];
 
-  [self commitComposition];
+  [self commitCompositionFromKeyboard];
 
   // Dropping it instead would leave the field permanently out of step with the
   // parent that asked for it.
@@ -175,6 +177,87 @@ struct TestProps {
 
   XCTAssertNotNil([_view input].markedTextRange);
   XCTAssertEqualObjects([_view currentText], @"かんじ");
+}
+
+#pragma mark - commitComposition
+
+- (void)testCommitCompositionEndsTheConversion
+{
+  [self beginComposing:@"あかさ"];
+
+  [_view commitComposition];
+
+  XCTAssertNil([_view input].markedTextRange);
+  // `unmarkText` confirms what is on screen as it stands; it does not convert.
+  XCTAssertEqualObjects([_view currentText], @"あかさ");
+}
+
+- (void)testCommitCompositionLetsAnInsertionFromJavaScriptLand
+{
+  // The reason the command exists: an emoji bar tapped mid-conversion used to be
+  // held back and then applied on commit, overwriting the conversion result.
+  [self beginComposing:@"あかさ"];
+
+  [_view commitComposition];
+  [_view setTextValue:@"あかさ😄" fromJS:YES];
+
+  XCTAssertEqualObjects([_view currentText], @"あかさ😄");
+}
+
+- (void)testCommitCompositionFlushesAValueTheConversionWasHolding
+{
+  [self beginComposing:@"あかさ"];
+  [_view setTextValue:@"replaced" fromJS:YES];
+
+  [_view commitComposition];
+
+  XCTAssertEqualObjects([_view currentText], @"replaced");
+}
+
+- (void)testCommitCompositionAppliesMaxLengthTheConversionHeldBack
+{
+  [self applyProps:^(TestProps &props) {
+    props.maxLength = 3;
+  }];
+  [self beginComposing:@"にほんごにゅうりょく"];
+
+  [_view commitComposition];
+
+  XCTAssertEqualObjects([_view currentText], @"にほん");
+}
+
+- (void)testCommitCompositionIsNotReportedAsAUserEdit
+{
+  // Composing reports change events, and JavaScript echoes back the count it
+  // has seen; here it is in sync, as it is by the time a button is tapped.
+  [self beginComposing:@"ろうそく"];
+  NSInteger seenByJavaScript = [_view nativeEventCount];
+
+  [_view commitComposition];
+
+  // UIKit reports the unmark as an edit. Passing that on would outrun what
+  // JavaScript has seen, and the value it sends next — the one this call is
+  // clearing the way for — would be refused as stale.
+  XCTAssertEqual([_view nativeEventCount], seenByJavaScript);
+
+  // The real path: the insertion arrives as a prop, carrying that same count.
+  [self applyProps:^(TestProps &props) {
+    props.text = "ろうそく😄";
+    props.textRevision = 1;
+    props.mostRecentEventCount = (int)seenByJavaScript;
+  }];
+
+  XCTAssertEqualObjects([_view currentText], @"ろうそく😄");
+}
+
+- (void)testCommitCompositionDoesNothingWhenNoConversionIsOpen
+{
+  [_view setTextValue:@"plain" fromJS:YES];
+
+  [_view commitComposition];
+
+  XCTAssertNil([_view input].markedTextRange);
+  XCTAssertEqualObjects([_view currentText], @"plain");
 }
 
 #pragma mark - Rule 2: attributes are never written mid-conversion
@@ -201,7 +284,7 @@ struct TestProps {
     props.fontSize = 24;
   }];
 
-  [self commitComposition];
+  [self commitCompositionFromKeyboard];
 
   UITextView *textView = (UITextView *)[_view input];
   XCTAssertEqual(textView.font.pointSize, 24);
@@ -229,7 +312,7 @@ struct TestProps {
   }];
   [self beginComposing:@"にほんごにゅうりょく"];
 
-  [self commitComposition];
+  [self commitCompositionFromKeyboard];
 
   XCTAssertEqualObjects([_view currentText], @"にほん");
 }

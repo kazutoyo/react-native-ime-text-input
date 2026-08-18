@@ -2,7 +2,8 @@ import type { Ref } from 'react';
 import type { TextInputProps as RNTextInputProps } from 'react-native';
 
 /**
- * Imperative handle, mirroring React Native's `TextInput` methods.
+ * Imperative handle: React Native's `TextInput` methods, plus one it has no
+ * equivalent for.
  */
 export type TextInputRef = {
   focus: () => void;
@@ -10,6 +11,30 @@ export type TextInputRef = {
   clear: () => void;
   isFocused: () => boolean;
   setSelection: (start: number, end: number) => void;
+  /**
+   * Confirms an in-progress IME conversion, so that a value set right after it
+   * replaces the composed text instead of being queued behind it.
+   *
+   * Call it before inserting text into a field the user may be composing in —
+   * an emoji picker, a mention bar, a formatting button. Without it the
+   * insertion is held until the conversion commits and then applied on top of
+   * it, and the conversion result is lost.
+   *
+   * ```ts
+   * const insertEmoji = (emoji: string) => {
+   *   ref.current?.commitComposition();
+   *   setValue((current) => current + emoji);
+   * };
+   * ```
+   *
+   * The confirmation takes the composed text as it stands, the same as tapping
+   * elsewhere in the field would — it does not pick a conversion candidate.
+   *
+   * iOS only. On Android and web this is a no-op: React Native's own
+   * `TextInput` renders there, and their IMEs commit on their own when the
+   * value changes.
+   */
+  commitComposition: () => void;
 };
 
 /**

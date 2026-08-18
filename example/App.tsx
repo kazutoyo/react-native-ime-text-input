@@ -210,11 +210,22 @@ function SecureAndMax() {
  * its own and `maxHeight` caps it — past that the UITextView scrolls inside.
  */
 function ChatComposer() {
+  const inputRef = useRef<TextInputRef>(null);
   const [text, setText] = useState('');
+
+  // The emoji bar: an insertion made while the user may be mid-conversion.
+  // Without the commit, the new value is held behind the open conversion and
+  // then applied on top of its result — the emoji appears late, attached to the
+  // unconfirmed reading. Type ろうそく, then tap this before converting.
+  const insertEmoji = (emoji: string) => {
+    inputRef.current?.commitComposition();
+    setText((current) => current + emoji);
+  };
 
   return (
     <View style={styles.composer}>
       <TextInput
+        ref={inputRef}
         style={styles.composerInput}
         value={text}
         onChangeText={setText}
@@ -224,7 +235,10 @@ function ChatComposer() {
       />
       <View style={styles.composerBar}>
         <Text style={styles.echo}>{text.length} chars</Text>
-        <Button title="send" onPress={() => setText('')} />
+        <View style={styles.row}>
+          <Button title="😄" onPress={() => insertEmoji('😄')} testID="emoji" />
+          <Button title="send" onPress={() => setText('')} />
+        </View>
       </View>
     </View>
   );

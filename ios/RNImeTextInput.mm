@@ -1447,6 +1447,63 @@ static UIKeyboardAppearance RNImeTextInputKeyboardAppearance(const std::string &
   [self emitChangeText];
 }
 
+/**
+ Confirms an open conversion, so a value JavaScript is about to send can land.
+
+ Everything else here treats an open conversion as untouchable, because writing
+ to the buffer is what clears `markedTextRange` and drops the underline. That is
+ right for a controlled value echoing back what the user is typing, and wrong
+ for an insertion the user just asked for — tapping an emoji bar mid-conversion
+ would otherwise be held back and then overwrite the conversion result. Only
+ JavaScript knows which of the two it is about to send, so it says so by calling
+ this first.
+
+ `unmarkText` confirms the text as it stands; it does not run the conversion.
+ That is the intended behaviour: the tap ends the conversion where the user left
+ it, exactly as tapping elsewhere in the field would.
+ */
+- (void)commitComposition
+{
+  if ([self input].markedTextRange == nil) {
+    return;
+  }
+
+  // UIKit reports the unmark as an edit, and reporting it onwards would defeat
+  // the whole call: the bumped `eventCount` outruns what JavaScript has seen,
+  // so `applyJSText` refuses the value JavaScript sends next — the very value
+  // this is clearing the way for — as stale, and the insertion disappears.
+  // `_applyingFromJS` is what tells `handleTextChanged` that an edit did not
+  // come from the user, which a JavaScript-driven confirmation did not.
+  _applyingFromJS = YES;
+  [[self input] unmarkText];
+  _applyingFromJS = NO;
+
+  // That flag also holds back the deferred work, so it runs here instead.
+  BOOL flushed = [self flushPendingAfterCommit];
+  [self enforceMaxLength];
+  [self updatePlaceholderVisibility];
+  [self notifyContentSizeChange];
+  [self notifySelectionChange];
+
+  // Only a value that was waiting on the conversion is news to JavaScript. The
+  // composed text itself is not: it is emitted throughout the conversion, so
+  // JavaScript already holds it.
+  if (flushed) {
+    _nativeEventCount += 1;
+    [self emitChangeText];
+  }
+}
+
+/*
+ How many change events this view has reported. `applyJSText` compares it with
+ the count JavaScript echoes back, so the tests need it to say what "JavaScript
+ is in sync" means without reaching into an ivar.
+ */
+- (NSInteger)nativeEventCount
+{
+  return _nativeEventCount;
+}
+
 - (void)setSelection:(NSInteger)start end:(NSInteger)end
 {
   [self setSelectionStart:start end:end];

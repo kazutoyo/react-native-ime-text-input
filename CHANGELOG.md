@@ -7,6 +7,33 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Added
+
+- `ref.commitComposition()`, which confirms an in-progress IME conversion.
+  Everything else here treats an open conversion as untouchable, because
+  writing to the buffer is what clears UIKit's marked text and drops the
+  underline. That is right for a controlled `value` echoing what the user is
+  typing, and wrong for an insertion the user just asked for: an emoji picker
+  or a mention bar tapped mid-conversion appeared to do nothing, and then
+  overwrote the conversion result when it committed, because the held value had
+  been computed from the unconfirmed reading. Only the caller knows which of
+  the two it is sending, so it now says so by calling this first. The
+  conversion is confirmed as it stands, the same as tapping elsewhere in the
+  field would — no candidate is chosen. iOS only; a no-op on Android and web,
+  where the IME commits on its own when the value is replaced.
+
+  The confirmation is not reported as an edit. UIKit raises one for the unmark
+  even though the user did not type, and passing it on would defeat the call:
+  the bumped `eventCount` outruns what JavaScript has seen, so the value
+  JavaScript sends next — the one the confirmation is clearing the way for —
+  gets refused as stale and the insertion disappears. No `onChangeText` fires
+  for the confirmation itself either; JavaScript already holds the composed
+  text, which is emitted throughout the conversion.
+
+  React Native's `TextInput` has no equivalent: writing `value` mid-conversion
+  is what ends the composition there, so the insertion lands but takes the
+  underline with it.
+
 ## [0.5.0] - 2026-08-15
 
 ### Fixed

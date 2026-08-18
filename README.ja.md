@@ -78,8 +78,11 @@ type TextInputRef = {
   clear: () => void;
   isFocused: () => boolean;
   setSelection: (start: number, end: number) => void;
+  commitComposition: () => void; // iOS のみ。他プラットフォームでは何もしない
 };
 ```
+
+`commitComposition()` だけは React Native の `TextInput` に対応するものがありません。変換中の入力を確定させ、直後にセットした値が変換中のテキストの裏に回らずそのまま反映されるようにするためのものです。[変換中にテキストを挿入する](#変換中にテキストを挿入する)を参照してください。
 
 ## 標準の `TextInput` との差分
 
@@ -96,6 +99,25 @@ React Native の `TextInput` が変換中に書き込みを行い、変換を打
 
 ただし、入力マスクや文字のフィルタのように `onChangeText` でテキストを加工して `value` に戻す実装は、これまで通り変換を打ち切ります。
 変換の途中で切られる代わりに確定まで遅延されるだけで、回避できるわけではありません。この種の加工は送信時に行うことをおすすめします。
+
+### 変換中にテキストを挿入する
+
+値を保留するのは、ユーザーが打っている内容がそのまま返ってくる controlled な `value` に対しては正しい挙動ですが、ユーザーが今まさに要求した挿入に対しては誤りです。
+絵文字パレット・メンションバー・装飾ボタンなどを変換中にタップすると、その場では何も起きず、変換を確定した時点で保留されていた値が上書きされます。保留された値は未確定の読みから計算されたものなので、変換結果が失われます。
+
+どちらを送ろうとしているかは呼び出し側にしか分からないので、呼び出し側が明示します。
+
+```tsx
+const insertEmoji = (emoji: string) => {
+  ref.current?.commitComposition();
+  setValue((current) => current + emoji);
+};
+```
+
+確定されるのは画面に出ている状態そのままです（フィールドの別の場所をタップしたときと同じで、変換候補を選ぶわけではありません）。
+React Native の `TextInput` には iOS でこれを行う手段がそもそもありません。変換中の `value` 書き込みが変換状態を壊す実装なので、挿入は反映されるものの下線も一緒に消えます。
+
+Android と web では何もする必要がありません（値が置き換われば IME 側が自分で確定します）。これらのプラットフォームでは何もしないメソッドなので、同じコードがそのまま動きます。
 
 ### iOS で効かない props とスタイルプロパティ
 
@@ -121,6 +143,7 @@ React Native の `TextInput` が変換中に書き込みを行い、変換を打
 | コールバックのイベント | 完全な `SyntheticEvent` | `nativeEvent` のみ。`target` は `0`。変更イベントには実際の `eventCount` が入る |
 | `ref.clear()` | `onChangeText` を発火しない | 発火する。controlled な親と同期を保つため |
 | `ref.isFocused()` | ネイティブビューに問い合わせる | focus / blur イベントから JavaScript 側で追跡 |
+| `ref.commitComposition()` | 存在しない | 変換中の入力を確定させる |
 | `onEndEditing` | 編集終了時に発火 | blur 時に発火（UIKit が編集終了を伝えてくるのがこのタイミングのため） |
 
 置き換え実装が壊しがちな点は、そのまま維持しています。ツリーに余分な View は入らないので（コンポーネント自体がネイティブビューです）、`flex` / `margin` / 兄弟要素のレイアウトは従来通りです。`multiline` の自動サイズも React Native と同じ仕組みで同じように動きます。
