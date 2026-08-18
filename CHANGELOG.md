@@ -7,6 +7,8 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-08-18
+
 ### Added
 
 - `ref.commitComposition()`, which confirms an in-progress IME conversion.
@@ -180,7 +182,8 @@ Initial release. A drop-in replacement for React Native's `TextInput` that
 restores the IME composition underline on iOS by owning the UIKit views, with
 React Native's own `TextInput` on Android and web.
 
-[Unreleased]: https://github.com/kazutoyo/react-native-ime-text-input/compare/0.5.0...HEAD
+[Unreleased]: https://github.com/kazutoyo/react-native-ime-text-input/compare/0.6.0...HEAD
+[0.6.0]: https://github.com/kazutoyo/react-native-ime-text-input/compare/0.5.0...0.6.0
 [0.5.0]: https://github.com/kazutoyo/react-native-ime-text-input/compare/0.4.0...0.5.0
 [0.4.0]: https://github.com/kazutoyo/react-native-ime-text-input/compare/0.3.0...0.4.0
 [0.3.0]: https://github.com/kazutoyo/react-native-ime-text-input/compare/0.2.1...0.3.0
