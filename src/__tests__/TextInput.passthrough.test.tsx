@@ -68,6 +68,7 @@ describe('<TextInput> on Android and web', () => {
       expect(Object.keys(ref.current ?? {}).sort()).toEqual([
         'blur',
         'clear',
+        'commitComposition',
         'focus',
         'isFocused',
         'setSelection',
@@ -79,6 +80,16 @@ describe('<TextInput> on Android and web', () => {
       await render(<TextInput testID="input" ref={ref} />);
 
       expect(ref.current?.isFocused()).toBe(false);
+    });
+
+    // React Native's own `TextInput` commits the composition by itself when the
+    // value changes, so there is nothing to do here — but the method has to
+    // exist, or cross-platform code calling it would crash off iOS.
+    it('commitComposition() does nothing, without complaining', async () => {
+      const ref = createRef<TextInputRef>();
+      await render(<TextInput testID="input" ref={ref} />);
+
+      expect(() => ref.current?.commitComposition()).not.toThrow();
     });
 
     it('survives setSelection on a node that has no such method', async () => {

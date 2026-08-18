@@ -163,10 +163,11 @@ interface NativeCommands {
     start: CodegenTypes.Int32,
     end: CodegenTypes.Int32
   ) => void;
+  commitComposition: (viewRef: React.ElementRef<RNImeTextInputViewType>) => void;
 }
 
 export const Commands: NativeCommands = codegenNativeCommands<NativeCommands>({
-  supportedCommands: ['focus', 'blur', 'clear', 'setSelection'],
+  supportedCommands: ['focus', 'blur', 'clear', 'setSelection', 'commitComposition'],
 });
 
 export default codegenNativeComponent<NativeProps>('RNImeTextInput') as RNImeTextInputViewType;

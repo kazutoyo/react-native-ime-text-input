@@ -57,7 +57,7 @@ describe('the codegen spec and the native implementation stay in step', () => {
     expect(native).toContain(prop);
   });
 
-  it.each(['focus', 'blur', 'clear', 'setSelection'])(
+  it.each(['focus', 'blur', 'clear', 'setSelection', 'commitComposition'])(
     'the `%s` command has a native implementation',
     (command) => {
       expect(native).toMatch(new RegExp(`^- \\(void\\)${command}\\b`, 'm'));
@@ -69,6 +69,12 @@ describe('the codegen spec and the native implementation stay in step', () => {
     expect(supported).not.toBeNull();
 
     const names = [...(supported?.[1] ?? '').matchAll(/'(\w+)'/g)].map((match) => match[1]);
-    expect(names.sort()).toEqual(['blur', 'clear', 'focus', 'setSelection']);
+    expect(names.sort()).toEqual([
+      'blur',
+      'clear',
+      'commitComposition',
+      'focus',
+      'setSelection',
+    ]);
   });
 });

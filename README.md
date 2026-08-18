@@ -77,8 +77,11 @@ type TextInputRef = {
   clear: () => void;
   isFocused: () => boolean;
   setSelection: (start: number, end: number) => void;
+  commitComposition: () => void; // iOS only; a no-op elsewhere
 };
 ```
+
+`commitComposition()` is the one method React Native's `TextInput` has no equivalent for. It confirms an in-progress IME conversion, so that a value set right after it replaces the composed text instead of being queued behind it. See [Inserting text while the user is composing](#inserting-text-while-the-user-is-composing).
 
 ## Differences from React Native's `TextInput`
 
@@ -93,6 +96,23 @@ The places where React Native writes mid-conversion and cuts it short. These are
 | Text attributes (`lineHeight`, `letterSpacing`, …) mid-conversion | Reapplied, clearing marked text | Held until the conversion commits |
 
 Rewriting the text inside `onChangeText` and feeding it back through `value` — input masking, forced upper case, character filtering — still cancels the conversion. It is deferred until the conversion commits rather than cut off mid-word, but not avoided. Prefer applying such transforms on submit.
+
+### Inserting text while the user is composing
+
+Holding a value back is right for a controlled `value` echoing what the user is typing, and wrong for an insertion the user just asked for. An emoji picker, a mention bar or a formatting button tapped mid-conversion would appear to do nothing, and then overwrite the conversion result when it commits — the held value was computed from the unconfirmed reading.
+
+Only the caller knows which of the two it is about to send, so it says so:
+
+```tsx
+const insertEmoji = (emoji: string) => {
+  ref.current?.commitComposition();
+  setValue((current) => current + emoji);
+};
+```
+
+The conversion is confirmed as it stands, the same as tapping elsewhere in the field would — it does not pick a candidate. React Native's `TextInput` has no way to do this on iOS at all: writing `value` mid-conversion is what clears the composition there, so the insertion lands but the underline goes with it.
+
+Nothing to do on Android and web — their IMEs commit on their own when the value is replaced — and the method is a no-op there so the same code runs everywhere.
 
 ### Ignored on iOS
 
@@ -117,6 +137,7 @@ The rest React Native core does implement on iOS, and they are simply not implem
 | Callback events | Full `SyntheticEvent` | Only `nativeEvent` is populated; `target` is `0`. Change events carry a real `eventCount` |
 | `ref.clear()` | Does not fire `onChangeText` | Fires it, so a controlled parent stays in sync |
 | `ref.isFocused()` | Queries the native view | Tracked in JavaScript from focus/blur events |
+| `ref.commitComposition()` | Absent | Confirms an open IME conversion |
 | `onEndEditing` | Fires when editing ends | Fires on blur, which is when UIKit reports it |
 
 Unchanged, because these are what a replacement usually gets wrong: there is no extra view in the tree — the component *is* the native view, so `flex`, `margin` and sibling layout behave exactly as before; and `multiline` self-sizing matches React Native's, through the same mechanism.

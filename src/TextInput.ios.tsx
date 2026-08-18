@@ -214,6 +214,9 @@ export function TextInput(props: TextInputProps) {
       setSelection: (start: number, end: number) => {
         if (nativeRef.current) Commands.setSelection(nativeRef.current, start, end);
       },
+      commitComposition: () => {
+        if (nativeRef.current) Commands.commitComposition(nativeRef.current);
+      },
     }),
     []
   );

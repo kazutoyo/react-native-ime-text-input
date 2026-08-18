@@ -22,6 +22,7 @@ jest.mock('../RNImeTextInputNativeComponent', () => {
       blur: jest.fn(),
       clear: jest.fn(),
       setSelection: jest.fn(),
+      commitComposition: jest.fn(),
     },
   };
 });
@@ -144,6 +145,7 @@ describe('<TextInput> ref', () => {
     expect(Object.keys(ref.current ?? {}).sort()).toEqual([
       'blur',
       'clear',
+      'commitComposition',
       'focus',
       'isFocused',
       'setSelection',
@@ -154,6 +156,7 @@ describe('<TextInput> ref', () => {
     ['focus', () => Commands.focus],
     ['blur', () => Commands.blur],
     ['clear', () => Commands.clear],
+    ['commitComposition', () => Commands.commitComposition],
   ] as const)('%s() dispatches the matching command', async (method, command) => {
     const ref = createRef<TextInputRef>();
     await render(<TextInput testID="input" ref={ref} />);

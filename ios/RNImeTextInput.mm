@@ -1447,6 +1447,48 @@ static UIKeyboardAppearance RNImeTextInputKeyboardAppearance(const std::string &
   [self emitChangeText];
 }
 
+/**
+ Confirms an open conversion, so a value JavaScript is about to send can land.
+
+ Everything else here treats an open conversion as untouchable, because writing
+ to the buffer is what clears `markedTextRange` and drops the underline. That is
+ right for a controlled value echoing back what the user is typing, and wrong
+ for an insertion the user just asked for — tapping an emoji bar mid-conversion
+ would otherwise be held back and then overwrite the conversion result. Only
+ JavaScript knows which of the two it is about to send, so it says so by calling
+ this first.
+
+ `unmarkText` confirms the text as it stands; it does not run the conversion.
+ That is the intended behaviour: the tap ends the conversion where the user left
+ it, exactly as tapping elsewhere in the field would.
+ */
+- (void)commitComposition
+{
+  if ([self input].markedTextRange == nil) {
+    return;
+  }
+  [[self input] unmarkText];
+
+  // The string is unchanged by the confirmation, so neither `UITextField` nor
+  // `UITextView` reports an edit for it. The work a real commit would have
+  // triggered from the delegates still has to run.
+  BOOL flushed = [self flushPendingAfterCommit];
+  [self enforceMaxLength];
+  [self updatePlaceholderVisibility];
+  [self notifyContentSizeChange];
+  [self notifySelectionChange];
+
+  // No event unless something actually changed. JavaScript already holds the
+  // text that was on screen — it is emitted throughout the conversion — and a
+  // spurious `eventCount` bump here would make the value JavaScript sends next
+  // look stale to `applyJSText`, which is the very value this call is clearing
+  // the way for.
+  if (flushed) {
+    _nativeEventCount += 1;
+    [self emitChangeText];
+  }
+}
+
 - (void)setSelection:(NSInteger)start end:(NSInteger)end
 {
   [self setSelectionStart:start end:end];

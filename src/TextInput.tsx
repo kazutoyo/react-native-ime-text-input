@@ -26,6 +26,10 @@ export function TextInput({ ref, ...props }: TextInputProps) {
       clear: () => innerRef.current?.clear(),
       isFocused: () => innerRef.current?.isFocused() ?? false,
       setSelection: (start: number, end: number) => setSelectionOn(innerRef.current, start, end),
+      // Nothing to do: Android's `EditText` and the browser's `<input>` end a
+      // composition themselves when the value is replaced. The method exists so
+      // that cross-platform code can call it unconditionally.
+      commitComposition: () => {},
     }),
     []
   );
