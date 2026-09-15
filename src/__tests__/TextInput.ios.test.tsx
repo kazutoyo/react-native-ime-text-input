@@ -413,10 +413,22 @@ describe('<TextInput> props reaching the native view', () => {
     expect(nativeProps().inputAccessoryViewID).toBe('');
   });
 
-  it('drops the props that do nothing on iOS, and warns', async () => {
-    await render(<TextInput testID="input" scrollEnabled dataDetectorTypes="link" />);
+  it('sends scrollEnabled down so a multiline field can be pinned', async () => {
+    await render(<TextInput testID="input" multiline scrollEnabled={false} />);
 
-    expect(nativeProps().scrollEnabled).toBeUndefined();
+    expect(nativeProps().scrollEnabled).toBe(false);
+  });
+
+  it('leaves scrolling on when scrollEnabled is not given', async () => {
+    await render(<TextInput testID="input" multiline />);
+
+    expect(nativeProps().scrollEnabled).toBe(true);
+  });
+
+  it('drops the props that do nothing on iOS, and warns', async () => {
+    await render(<TextInput testID="input" onScroll={() => {}} dataDetectorTypes="link" />);
+
+    expect(nativeProps().onScroll).toBeUndefined();
     expect(nativeProps().dataDetectorTypes).toBeUndefined();
     expect(console.warn).toHaveBeenCalledTimes(2);
   });

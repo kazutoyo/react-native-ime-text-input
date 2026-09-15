@@ -7,6 +7,15 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Added
+
+- `scrollEnabled`, which was previously ignored with a warning. It reaches the
+  multiline `UITextView` as React Native's own iOS view applies it: `false`
+  pins the text at the top, so anything past the field's height is clipped
+  rather than reachable. A single-line field is unaffected — a `UITextField`
+  has nowhere to scroll to, and React Native stores the flag there without
+  acting on it either.
+
 ## [0.6.0] - 2026-08-18
 
 ### Added

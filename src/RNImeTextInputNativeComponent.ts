@@ -47,6 +47,12 @@ export interface NativeProps extends ViewProps {
   placeholder?: string;
   placeholderTextColor?: ColorValue;
   multiline?: CodegenTypes.WithDefault<boolean, false>;
+  /**
+   * Multiline only — a `UITextField` does not scroll. `false` pins the text at
+   * the top, so anything past the field's height is clipped rather than
+   * reachable, which is what React Native's own iOS view does.
+   */
+  scrollEnabled?: CodegenTypes.WithDefault<boolean, true>;
   /** 0 means unlimited, matching React Native. */
   maxLength?: CodegenTypes.WithDefault<CodegenTypes.Int32, 0>;
 

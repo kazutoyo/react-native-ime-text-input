@@ -1,0 +1,34 @@
+# `scrollEnabled` decides who gets the drag.
+#
+# Both fields hold the same text, more than their `maxHeight` shows, so the
+# only difference between them is the flag. The one that scrolls keeps the drag
+# for itself and the page stays put; `scrollEnabled={false}` turns the pan
+# recognizer off, so the same drag reaches the ScrollView underneath and the
+# page moves — which is what turning it off inside a scrolling form is for.
+#
+# One swipe each, from the same scroll position: a second swipe on a field
+# already at the end of its own content reaches the page as well, and would
+# stop telling the two apart.
+appId: com.kazutoyo-tokai-tn.example
+---
+- launchApp:
+    clearState: true
+
+- scrollUntilVisible:
+    element:
+      id: 'pinned'
+- assertNotVisible: 'drift row 8'
+
+# Scrolls itself, not the page.
+- swipe:
+    from:
+      id: 'scrolling'
+    direction: UP
+- assertNotVisible: 'drift row 8'
+
+# Hands the drag over, and the page scrolls.
+- swipe:
+    from:
+      id: 'pinned'
+    direction: UP
+- assertVisible: 'drift row 8'

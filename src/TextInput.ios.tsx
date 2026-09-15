@@ -141,6 +141,7 @@ export function TextInput(props: TextInputProps) {
     placeholder,
     placeholderTextColor,
     multiline,
+    scrollEnabled,
     maxLength,
     autoFocus,
     selectTextOnFocus,
@@ -277,6 +278,7 @@ export function TextInput(props: TextInputProps) {
       placeholder={str(placeholder)}
       placeholderTextColor={placeholderTextColor ?? undefined}
       multiline={multiline ?? false}
+      scrollEnabled={scrollEnabled ?? true}
       maxLength={maxLength ?? 0}
       editable={isEditable}
       autoFocus={autoFocus ?? false}

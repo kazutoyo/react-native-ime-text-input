@@ -270,6 +270,7 @@ static UIKeyboardAppearance RNImeTextInputKeyboardAppearance(const std::string &
   BOOL _didAutoFocus;
 
   BOOL _multiline;
+  BOOL _scrollEnabled;
   BOOL _editable;
   BOOL _secureTextEntry;
   BOOL _autoFocus;
@@ -333,6 +334,7 @@ static UIKeyboardAppearance RNImeTextInputKeyboardAppearance(const std::string &
 
     _attributes = [RNImeTextInputAttributes new];
     _jsText = nil;
+    _scrollEnabled = YES;
     _editable = YES;
     _autoCorrect = YES;
     // React Native's default: text follows the system text size setting.
@@ -424,7 +426,6 @@ static UIKeyboardAppearance RNImeTextInputKeyboardAppearance(const std::string &
     view.textContainerInset = UIEdgeInsetsZero;
     view.textContainer.lineFragmentPadding = 0;
     view.adjustsFontForContentSizeCategory = NO;
-    view.scrollEnabled = YES;
     _textView = view;
     [self insertSubview:view atIndex:0];
   } else {
@@ -438,6 +439,7 @@ static UIKeyboardAppearance RNImeTextInputKeyboardAppearance(const std::string &
 
   [self applyTextAttributes];
   [self applyPlaceholder];
+  [self applyScrollEnabled];
   [self applyEditable];
   [self applySecureTextEntry];
   [self applyKeyboardTraits];
@@ -727,6 +729,19 @@ static UIKeyboardAppearance RNImeTextInputKeyboardAppearance(const std::string &
   // overlaid for the multiline case.
   _textField.attributedPlaceholder = placeholder;
   [self setNeedsLayout];
+}
+
+/**
+ Only the `UITextView` scrolls — a `UITextField` has nowhere to scroll to, and
+ React Native's own single-line view stores the flag without acting on it.
+
+ With scrolling off the text stays pinned at the top: anything past the field's
+ height is clipped rather than reachable, which is what UIKit does and what
+ React Native's iOS `TextInput` therefore does too.
+ */
+- (void)applyScrollEnabled
+{
+  _textView.scrollEnabled = _scrollEnabled;
 }
 
 - (void)applyEditable
@@ -1297,6 +1312,11 @@ static UIKeyboardAppearance RNImeTextInputKeyboardAppearance(const std::string &
     _placeholder = RCTNSStringFromString(newProps.placeholder);
     _placeholderColor = RCTUIColorFromSharedColor(newProps.placeholderTextColor);
     [self applyPlaceholder];
+  }
+
+  if (old == nullptr || newProps.scrollEnabled != old->scrollEnabled) {
+    _scrollEnabled = newProps.scrollEnabled;
+    [self applyScrollEnabled];
   }
 
   if (old == nullptr || newProps.editable != old->editable) {

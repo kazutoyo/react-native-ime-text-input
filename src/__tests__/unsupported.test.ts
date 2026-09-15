@@ -15,15 +15,15 @@ describe('findUnsupportedProps', () => {
   it('reports props that have no native equivalent', () => {
     const found = findUnsupportedProps({
       value: 'a',
-      scrollEnabled: false,
+      onScroll: () => {},
       dataDetectorTypes: 'link',
     });
 
-    expect(found.sort()).toEqual(['dataDetectorTypes', 'scrollEnabled']);
+    expect(found.sort()).toEqual(['dataDetectorTypes', 'onScroll']);
   });
 
   it('ignores unsupported props that are explicitly undefined', () => {
-    expect(findUnsupportedProps({ scrollEnabled: undefined })).toEqual([]);
+    expect(findUnsupportedProps({ onScroll: undefined })).toEqual([]);
   });
 
   it('treats every name in UNSUPPORTED_PROPS as unsupported', () => {
@@ -51,23 +51,23 @@ describe('warnUnsupported', () => {
   });
 
   it('warns once per name, however many times it is reported', () => {
-    warnUnsupported('prop', ['scrollEnabled']);
-    warnUnsupported('prop', ['scrollEnabled']);
-    warnUnsupported('prop', ['scrollEnabled']);
+    warnUnsupported('prop', ['onScroll']);
+    warnUnsupported('prop', ['onScroll']);
+    warnUnsupported('prop', ['onScroll']);
 
     expect(warn).toHaveBeenCalledTimes(1);
   });
 
   it('names the offending prop and the library in the message', () => {
-    warnUnsupported('prop', ['scrollEnabled']);
+    warnUnsupported('prop', ['onScroll']);
 
     const message = warn.mock.calls[0][0] as string;
-    expect(message).toContain('scrollEnabled');
+    expect(message).toContain('onScroll');
     expect(message).toContain('react-native-ime-text-input');
   });
 
   it('says the gap is iOS-only, so the reader does not think the prop is dead everywhere', () => {
-    warnUnsupported('prop', ['scrollEnabled']);
+    warnUnsupported('prop', ['onScroll']);
 
     const message = warn.mock.calls[0][0] as string;
     expect(message).toContain('iOS');
@@ -75,7 +75,7 @@ describe('warnUnsupported', () => {
   });
 
   it('warns separately for each distinct name', () => {
-    warnUnsupported('prop', ['scrollEnabled', 'dataDetectorTypes']);
+    warnUnsupported('prop', ['onScroll', 'dataDetectorTypes']);
 
     expect(warn).toHaveBeenCalledTimes(2);
   });
@@ -97,7 +97,7 @@ describe('warnUnsupported', () => {
     const previous = global.__DEV__;
     global.__DEV__ = false;
     try {
-      warnUnsupported('prop', ['scrollEnabled']);
+      warnUnsupported('prop', ['onScroll']);
       expect(warn).not.toHaveBeenCalled();
     } finally {
       global.__DEV__ = previous;

@@ -53,6 +53,14 @@ export default function App() {
           <SecureAndMax />
         </Section>
 
+        <Section label="6. multiline, scrolls inside its maxHeight">
+          <Overflowing scrollEnabled testID="scrolling" />
+        </Section>
+
+        <Section label="7. multiline, scrollEnabled={false}">
+          <Overflowing scrollEnabled={false} testID="pinned" />
+        </Section>
+
         {ROWS.map((n) => (
           <Section key={n} label={`drift row ${n}`}>
             <Framed>
@@ -60,6 +68,8 @@ export default function App() {
             </Framed>
           </Section>
         ))}
+
+        <Text style={styles.hint}>end of screen</Text>
       </ScrollView>
 
       <ChatComposer />
@@ -204,6 +214,31 @@ function SecureAndMax() {
   );
 }
 
+/** More text than `maxHeight` can show, so the field is always overflowing. */
+const OVERFLOWING = 'A field prefilled past the height its style allows. '.repeat(6);
+
+/**
+ * A capped multiline field, with and without scrolling.
+ *
+ * Scrolling off is what `scrollEnabled={false}` is usually wanted for: the text
+ * past the cap is clipped rather than reachable, and — because the UITextView
+ * stops recognising the drag — a swipe that starts inside the field scrolls the
+ * page instead of the field.
+ */
+function Overflowing({ scrollEnabled, testID }: { scrollEnabled: boolean; testID: string }) {
+  return (
+    <Framed>
+      <TextInput
+        style={styles.overflowing}
+        defaultValue={OVERFLOWING}
+        multiline
+        scrollEnabled={scrollEnabled}
+        testID={testID}
+      />
+    </Framed>
+  );
+}
+
 /**
  * The chat composer. No height state and no `onContentSizeChange`: the native
  * view publishes its content size as Fabric state, so Yoga grows the field on
@@ -259,6 +294,13 @@ const styles = StyleSheet.create({
     color: '#000000',
     fontSize: 17,
     height: 38,
+    paddingHorizontal: 10,
+  },
+  overflowing: {
+    backgroundColor: '#ffffff',
+    color: '#000000',
+    fontSize: 17,
+    maxHeight: 76,
     paddingHorizontal: 10,
   },
   attributed: {
