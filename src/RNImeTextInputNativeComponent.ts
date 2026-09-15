@@ -102,6 +102,12 @@ export interface NativeProps extends ViewProps {
   // -- Behaviour --
 
   editable?: CodegenTypes.WithDefault<boolean, true>;
+  /**
+   * `false` swaps the system keyboard for an empty input view, so focusing the
+   * field shows the caret without raising it — the way React Native's own iOS
+   * view implements it, despite its types filing the prop under Android.
+   */
+  showSoftInputOnFocus?: CodegenTypes.WithDefault<boolean, true>;
   secureTextEntry?: CodegenTypes.WithDefault<boolean, false>;
   autoFocus?: CodegenTypes.WithDefault<boolean, false>;
   selectTextOnFocus?: CodegenTypes.WithDefault<boolean, false>;

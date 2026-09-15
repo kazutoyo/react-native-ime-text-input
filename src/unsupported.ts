@@ -12,10 +12,7 @@
  *   `submitBehavior`.
  * - Simply not implemented here yet, though React Native core implements them
  *   on iOS: `dataDetectorTypes`, `lineBreakStrategyIOS`, `onScroll`,
- *   `rejectResponderTermination` and `showSoftInputOnFocus`.
- *   `showSoftInputOnFocus` is worth singling out because React Native's *types*
- *   put it under Android — its Fabric iOS view implements it anyway, by
- *   swapping `inputView` for an empty one.
+ *   `rejectResponderTermination`.
  *
  * They stay in the prop type either way: only iOS is replaced, and on Android
  * and web React Native's own `TextInput` honours them. Removing them from the
@@ -36,7 +33,6 @@ export const UNSUPPORTED_PROPS = [
   'onScroll',
   'rejectResponderTermination',
   'returnKeyLabel',
-  'showSoftInputOnFocus',
   'textBreakStrategy',
   'underlineColorAndroid',
 ] as const;

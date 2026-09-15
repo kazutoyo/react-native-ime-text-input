@@ -16,6 +16,12 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   has nowhere to scroll to, and React Native stores the flag there without
   acting on it either.
 
+- `showSoftInputOnFocus`, which was previously ignored with a warning. `false`
+  swaps the system keyboard for an empty input view, as React Native's own iOS
+  view does, so the field still focuses and shows its caret with a picker or a
+  custom keyboard drawn in its place. React Native's *types* file the prop
+  under Android; its iOS implementation has always honoured it.
+
 ## [0.6.0] - 2026-08-18
 
 ### Added

@@ -271,6 +271,7 @@ static UIKeyboardAppearance RNImeTextInputKeyboardAppearance(const std::string &
 
   BOOL _multiline;
   BOOL _scrollEnabled;
+  BOOL _showSoftInputOnFocus;
   BOOL _editable;
   BOOL _secureTextEntry;
   BOOL _autoFocus;
@@ -335,6 +336,7 @@ static UIKeyboardAppearance RNImeTextInputKeyboardAppearance(const std::string &
     _attributes = [RNImeTextInputAttributes new];
     _jsText = nil;
     _scrollEnabled = YES;
+    _showSoftInputOnFocus = YES;
     _editable = YES;
     _autoCorrect = YES;
     // React Native's default: text follows the system text size setting.
@@ -440,6 +442,7 @@ static UIKeyboardAppearance RNImeTextInputKeyboardAppearance(const std::string &
   [self applyTextAttributes];
   [self applyPlaceholder];
   [self applyScrollEnabled];
+  [self applyShowSoftInputOnFocus];
   [self applyEditable];
   [self applySecureTextEntry];
   [self applyKeyboardTraits];
@@ -742,6 +745,26 @@ static UIKeyboardAppearance RNImeTextInputKeyboardAppearance(const std::string &
 - (void)applyScrollEnabled
 {
   _textView.scrollEnabled = _scrollEnabled;
+}
+
+/**
+ Turning the flag off swaps the system keyboard for an empty input view, the way
+ React Native's own iOS view does (`RCTTextInputComponentView.mm:834-848`) — the
+ field still focuses and shows its caret, so it stays usable with a picker or a
+ custom keyboard drawn above it.
+
+ `reloadInputViews` is what makes the swap visible without a focus round trip:
+ UIKit otherwise keeps the keyboard it raised until the field resigns and
+ becomes first responder again.
+ */
+- (void)applyShowSoftInputOnFocus
+{
+  UIView *inputView = _showSoftInputOnFocus ? nil : [UIView new];
+  _textView.inputView = inputView;
+  _textField.inputView = inputView;
+  if ([self input].isFirstResponder) {
+    [[self input] reloadInputViews];
+  }
 }
 
 - (void)applyEditable
@@ -1317,6 +1340,11 @@ static UIKeyboardAppearance RNImeTextInputKeyboardAppearance(const std::string &
   if (old == nullptr || newProps.scrollEnabled != old->scrollEnabled) {
     _scrollEnabled = newProps.scrollEnabled;
     [self applyScrollEnabled];
+  }
+
+  if (old == nullptr || newProps.showSoftInputOnFocus != old->showSoftInputOnFocus) {
+    _showSoftInputOnFocus = newProps.showSoftInputOnFocus;
+    [self applyShowSoftInputOnFocus];
   }
 
   if (old == nullptr || newProps.editable != old->editable) {

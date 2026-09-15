@@ -425,6 +425,18 @@ describe('<TextInput> props reaching the native view', () => {
     expect(nativeProps().scrollEnabled).toBe(true);
   });
 
+  it('sends showSoftInputOnFocus down so a field can refuse the keyboard', async () => {
+    await render(<TextInput testID="input" showSoftInputOnFocus={false} />);
+
+    expect(nativeProps().showSoftInputOnFocus).toBe(false);
+  });
+
+  it('leaves the keyboard on when showSoftInputOnFocus is not given', async () => {
+    await render(<TextInput testID="input" />);
+
+    expect(nativeProps().showSoftInputOnFocus).toBe(true);
+  });
+
   it('drops the props that do nothing on iOS, and warns', async () => {
     await render(<TextInput testID="input" onScroll={() => {}} dataDetectorTypes="link" />);
 

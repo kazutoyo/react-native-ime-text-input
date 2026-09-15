@@ -55,6 +55,7 @@ struct TestProps {
   double letterSpacing = 0;
   std::string textDecorationLine;
   std::string smartInsertDelete;
+  bool showSoftInputOnFocus = true;
   std::string passwordRules;
   std::string clearButtonMode;
   bool contextMenuHidden = false;
@@ -113,6 +114,7 @@ struct TestProps {
   next->letterSpacing = _values.letterSpacing;
   next->textDecorationLine = _values.textDecorationLine;
   next->smartInsertDelete = _values.smartInsertDelete;
+  next->showSoftInputOnFocus = _values.showSoftInputOnFocus;
   next->passwordRules = _values.passwordRules;
   next->clearButtonMode = _values.clearButtonMode;
   next->contextMenuHidden = _values.contextMenuHidden;
@@ -461,6 +463,45 @@ struct TestProps {
 
   XCTAssertNil([_view input].markedTextRange);
   XCTAssertEqualObjects([_view currentText], @"ろうそく");
+}
+
+- (void)testTheSystemKeyboardIsUsedByDefault
+{
+  XCTAssertNil([_view input].inputView);
+}
+
+- (void)testShowSoftInputOnFocusOffSwapsInAnEmptyInputView
+{
+  [self applyProps:^(TestProps &props) {
+    props.showSoftInputOnFocus = false;
+  }];
+
+  XCTAssertNotNil([_view input].inputView);
+}
+
+- (void)testTheEmptyInputViewSurvivesSwitchingBackingViews
+{
+  [self applyProps:^(TestProps &props) {
+    props.showSoftInputOnFocus = false;
+  }];
+
+  [self applyProps:^(TestProps &props) {
+    props.multiline = false;
+  }];
+
+  XCTAssertNotNil([_view input].inputView);
+}
+
+- (void)testTheSystemKeyboardComesBackWhenTheFlagIsTurnedOn
+{
+  [self applyProps:^(TestProps &props) {
+    props.showSoftInputOnFocus = false;
+  }];
+  [self applyProps:^(TestProps &props) {
+    props.showSoftInputOnFocus = true;
+  }];
+
+  XCTAssertNil([_view input].inputView);
 }
 
 #pragma mark - Input traits

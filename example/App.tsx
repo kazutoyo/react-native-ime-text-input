@@ -69,6 +69,17 @@ export default function App() {
           </Section>
         ))}
 
+        <Section label="8. showSoftInputOnFocus={false}">
+          <Framed>
+            <TextInput
+              style={styles.input}
+              defaultValue="tap me: caret, no keyboard"
+              showSoftInputOnFocus={false}
+              testID="no-keyboard"
+            />
+          </Framed>
+        </Section>
+
         <Text style={styles.hint}>end of screen</Text>
       </ScrollView>
 
