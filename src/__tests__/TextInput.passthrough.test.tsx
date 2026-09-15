@@ -33,14 +33,14 @@ describe('<TextInput> on Android and web', () => {
   });
 
   it('forwards the props that only iOS has to drop', async () => {
-    await render(<TextInput testID="input" scrollEnabled={false} underlineColorAndroid="#ff0000" />);
+    await render(<TextInput testID="input" dataDetectorTypes="link" underlineColorAndroid="#ff0000" />);
 
-    expect(input().props.scrollEnabled).toBe(false);
+    expect(input().props.dataDetectorTypes).toBe('link');
     expect(input().props.underlineColorAndroid).toBe('#ff0000');
   });
 
   it('says nothing about them, because here they work', async () => {
-    await render(<TextInput testID="input" scrollEnabled={false} textBreakStrategy="balanced" />);
+    await render(<TextInput testID="input" dataDetectorTypes="link" textBreakStrategy="balanced" />);
 
     expect(console.warn).not.toHaveBeenCalled();
   });

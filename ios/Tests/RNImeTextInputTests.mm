@@ -44,6 +44,7 @@ using namespace facebook::react;
  */
 struct TestProps {
   bool multiline = true;
+  bool scrollEnabled = true;
   std::string text;
   std::string placeholder;
   int textRevision = 0;
@@ -54,6 +55,8 @@ struct TestProps {
   double letterSpacing = 0;
   std::string textDecorationLine;
   std::string smartInsertDelete;
+  std::string lineBreakStrategyIOS;
+  bool showSoftInputOnFocus = true;
   std::string passwordRules;
   std::string clearButtonMode;
   bool contextMenuHidden = false;
@@ -101,6 +104,7 @@ struct TestProps {
 
   auto next = std::make_shared<RNImeTextInputProps>();
   next->multiline = _values.multiline;
+  next->scrollEnabled = _values.scrollEnabled;
   next->text = _values.text;
   next->placeholder = _values.placeholder;
   next->textRevision = _values.textRevision;
@@ -111,6 +115,8 @@ struct TestProps {
   next->letterSpacing = _values.letterSpacing;
   next->textDecorationLine = _values.textDecorationLine;
   next->smartInsertDelete = _values.smartInsertDelete;
+  next->lineBreakStrategyIOS = _values.lineBreakStrategyIOS;
+  next->showSoftInputOnFocus = _values.showSoftInputOnFocus;
   next->passwordRules = _values.passwordRules;
   next->clearButtonMode = _values.clearButtonMode;
   next->contextMenuHidden = _values.contextMenuHidden;
@@ -407,6 +413,117 @@ struct TestProps {
 
   XCTAssertTrue([[_view input] isKindOfClass:[UITextView class]]);
   XCTAssertEqualObjects([_view currentText], @"carried");
+}
+
+- (void)testAMultilineFieldScrollsByDefault
+{
+  XCTAssertTrue(((UITextView *)[_view input]).scrollEnabled);
+}
+
+- (void)testScrollEnabledFalseStopsTheMultilineViewScrolling
+{
+  [self applyProps:^(TestProps &props) {
+    props.scrollEnabled = false;
+  }];
+
+  XCTAssertFalse(((UITextView *)[_view input]).scrollEnabled);
+}
+
+- (void)testScrollEnabledSurvivesSwitchingBackingViews
+{
+  // The flag is applied where the view is built as well as where the prop
+  // changes; a rebuild that forgets it would silently scroll again.
+  [self applyProps:^(TestProps &props) {
+    props.scrollEnabled = false;
+  }];
+
+  [self applyProps:^(TestProps &props) {
+    props.multiline = false;
+  }];
+  [self applyProps:^(TestProps &props) {
+    props.multiline = true;
+  }];
+
+  XCTAssertFalse(((UITextView *)[_view input]).scrollEnabled);
+}
+
+- (void)testAConversionStillHoldsWithScrollingOff
+{
+  // A `UITextView` with scrolling off drops back to TextKit 1, which is a big
+  // enough change under the field to be worth asserting the one thing this
+  // library exists for still works there.
+  [self applyProps:^(TestProps &props) {
+    props.scrollEnabled = false;
+  }];
+
+  [self beginComposing:@"ろうそく"];
+
+  XCTAssertNotNil([_view input].markedTextRange);
+  XCTAssertEqualObjects([_view currentText], @"ろうそく");
+
+  [self commitCompositionFromKeyboard];
+
+  XCTAssertNil([_view input].markedTextRange);
+  XCTAssertEqualObjects([_view currentText], @"ろうそく");
+}
+
+- (void)testTheSystemKeyboardIsUsedByDefault
+{
+  XCTAssertNil([_view input].inputView);
+}
+
+- (void)testShowSoftInputOnFocusOffSwapsInAnEmptyInputView
+{
+  [self applyProps:^(TestProps &props) {
+    props.showSoftInputOnFocus = false;
+  }];
+
+  XCTAssertNotNil([_view input].inputView);
+}
+
+- (void)testTheEmptyInputViewSurvivesSwitchingBackingViews
+{
+  [self applyProps:^(TestProps &props) {
+    props.showSoftInputOnFocus = false;
+  }];
+
+  [self applyProps:^(TestProps &props) {
+    props.multiline = false;
+  }];
+
+  XCTAssertNotNil([_view input].inputView);
+}
+
+- (void)testTheSystemKeyboardComesBackWhenTheFlagIsTurnedOn
+{
+  [self applyProps:^(TestProps &props) {
+    props.showSoftInputOnFocus = false;
+  }];
+  [self applyProps:^(TestProps &props) {
+    props.showSoftInputOnFocus = true;
+  }];
+
+  XCTAssertNil([_view input].inputView);
+}
+
+- (void)testTheLineBreakStrategyReachesTheTypingAttributes
+{
+  [self applyProps:^(TestProps &props) {
+    props.lineBreakStrategyIOS = "push-out";
+  }];
+
+  NSParagraphStyle *style =
+      ((UITextView *)[_view input]).typingAttributes[NSParagraphStyleAttributeName];
+
+  XCTAssertEqual(style.lineBreakStrategy, NSLineBreakStrategyPushOut);
+}
+
+- (void)testAnUnsetLineBreakStrategyLeavesUIKitsDefault
+{
+  NSParagraphStyle *style =
+      ((UITextView *)[_view input]).typingAttributes[NSParagraphStyleAttributeName];
+
+  XCTAssertTrue(style == nil || style.lineBreakStrategy == NSLineBreakStrategyNone);
 }
 
 #pragma mark - Input traits

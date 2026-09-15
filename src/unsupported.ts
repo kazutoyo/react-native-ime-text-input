@@ -11,11 +11,7 @@
  *   `blurOnSubmit`, which is React Native's own deprecated alias for
  *   `submitBehavior`.
  * - Simply not implemented here yet, though React Native core implements them
- *   on iOS: `dataDetectorTypes`, `lineBreakStrategyIOS`, `onScroll`,
- *   `rejectResponderTermination`, `scrollEnabled` and `showSoftInputOnFocus`.
- *   `showSoftInputOnFocus` is worth singling out because React Native's *types*
- *   put it under Android — its Fabric iOS view implements it anyway, by
- *   swapping `inputView` for an empty one.
+ *   on iOS: `dataDetectorTypes`, `onScroll` and `rejectResponderTermination`.
  *
  * They stay in the prop type either way: only iOS is replaced, and on Android
  * and web React Native's own `TextInput` honours them. Removing them from the
@@ -32,12 +28,9 @@ export const UNSUPPORTED_PROPS = [
   'importantForAutofill',
   'inlineImageLeft',
   'inlineImagePadding',
-  'lineBreakStrategyIOS',
   'onScroll',
   'rejectResponderTermination',
   'returnKeyLabel',
-  'scrollEnabled',
-  'showSoftInputOnFocus',
   'textBreakStrategy',
   'underlineColorAndroid',
 ] as const;

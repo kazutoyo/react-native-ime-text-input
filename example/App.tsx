@@ -53,6 +53,14 @@ export default function App() {
           <SecureAndMax />
         </Section>
 
+        <Section label="6. multiline, scrolls inside its maxHeight">
+          <Overflowing scrollEnabled testID="scrolling" />
+        </Section>
+
+        <Section label="7. multiline, scrollEnabled={false}">
+          <Overflowing scrollEnabled={false} testID="pinned" />
+        </Section>
+
         {ROWS.map((n) => (
           <Section key={n} label={`drift row ${n}`}>
             <Framed>
@@ -60,6 +68,24 @@ export default function App() {
             </Framed>
           </Section>
         ))}
+
+        <Section label="8. showSoftInputOnFocus={false}">
+          <Framed>
+            <TextInput
+              style={styles.input}
+              defaultValue="tap me: caret, no keyboard"
+              showSoftInputOnFocus={false}
+              testID="no-keyboard"
+            />
+          </Framed>
+        </Section>
+
+        <Section label="9. lineBreakStrategyIOS — none (top) / push-out (bottom)">
+          <Kinsoku strategy="none" testID="kinsoku-none" />
+          <Kinsoku strategy="push-out" testID="kinsoku-push-out" />
+        </Section>
+
+        <Text style={styles.hint}>end of screen</Text>
       </ScrollView>
 
       <ChatComposer />
@@ -205,6 +231,59 @@ function SecureAndMax() {
 }
 
 /**
+ * A deliberately tight case for the line-breaking rules (禁則処理): the field is
+ * 11 full-width characters wide and every clause puts a `、` in the twelfth
+ * place, where a line may not start.
+ *
+ * Both strategies agree here on iOS 26 — the default already pushes the
+ * character before it down rather than squeezing the `、` in — so this is a
+ * place to compare them by eye, not a difference to expect. That the value
+ * reaches `NSParagraphStyle.lineBreakStrategy` at all is asserted in the
+ * native tests.
+ */
+const KINSOKU = 'あいうえおかきくけこさ、'.repeat(5);
+
+/** The same Japanese text under two line-breaking strategies. */
+function Kinsoku({ strategy, testID }: { strategy: 'none' | 'push-out'; testID: string }) {
+  return (
+    <Framed>
+      <TextInput
+        style={styles.kinsoku}
+        defaultValue={KINSOKU}
+        multiline
+        lineBreakStrategyIOS={strategy}
+        testID={testID}
+      />
+    </Framed>
+  );
+}
+
+/** More text than `maxHeight` can show, so the field is always overflowing. */
+const OVERFLOWING = 'A field prefilled past the height its style allows. '.repeat(6);
+
+/**
+ * A capped multiline field, with and without scrolling.
+ *
+ * Scrolling off is what `scrollEnabled={false}` is usually wanted for: the text
+ * past the cap is clipped rather than reachable, and — because the UITextView
+ * stops recognising the drag — a swipe that starts inside the field scrolls the
+ * page instead of the field.
+ */
+function Overflowing({ scrollEnabled, testID }: { scrollEnabled: boolean; testID: string }) {
+  return (
+    <Framed>
+      <TextInput
+        style={styles.overflowing}
+        defaultValue={OVERFLOWING}
+        multiline
+        scrollEnabled={scrollEnabled}
+        testID={testID}
+      />
+    </Framed>
+  );
+}
+
+/**
  * The chat composer. No height state and no `onContentSizeChange`: the native
  * view publishes its content size as Fabric state, so Yoga grows the field on
  * its own and `maxHeight` caps it — past that the UITextView scrolls inside.
@@ -260,6 +339,20 @@ const styles = StyleSheet.create({
     fontSize: 17,
     height: 38,
     paddingHorizontal: 10,
+  },
+  overflowing: {
+    backgroundColor: '#ffffff',
+    color: '#000000',
+    fontSize: 17,
+    maxHeight: 76,
+    paddingHorizontal: 10,
+  },
+  kinsoku: {
+    backgroundColor: '#ffffff',
+    color: '#000000',
+    fontSize: 17,
+    paddingHorizontal: 10,
+    width: 207,
   },
   attributed: {
     backgroundColor: '#ffffff',

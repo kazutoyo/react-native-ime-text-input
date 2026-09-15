@@ -138,9 +138,12 @@ export function TextInput(props: TextInputProps) {
     selection,
     editable,
     readOnly,
+    showSoftInputOnFocus,
+    lineBreakStrategyIOS,
     placeholder,
     placeholderTextColor,
     multiline,
+    scrollEnabled,
     maxLength,
     autoFocus,
     selectTextOnFocus,
@@ -277,8 +280,11 @@ export function TextInput(props: TextInputProps) {
       placeholder={str(placeholder)}
       placeholderTextColor={placeholderTextColor ?? undefined}
       multiline={multiline ?? false}
+      scrollEnabled={scrollEnabled ?? true}
       maxLength={maxLength ?? 0}
       editable={isEditable}
+      showSoftInputOnFocus={showSoftInputOnFocus ?? true}
+      lineBreakStrategyIOS={str(lineBreakStrategyIOS)}
       autoFocus={autoFocus ?? false}
       selectTextOnFocus={selectTextOnFocus ?? false}
       clearTextOnFocus={clearTextOnFocus ?? false}

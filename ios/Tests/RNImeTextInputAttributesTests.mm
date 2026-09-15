@@ -128,6 +128,22 @@
   XCTAssertTrue(style == nil || style.minimumLineHeight == 0);
 }
 
+- (void)testTurnsTheLineBreakStrategyIntoAParagraphStyle
+{
+  _attributes.lineBreakStrategy = NSLineBreakStrategyPushOut;
+
+  NSParagraphStyle *style = [_attributes attributes][NSParagraphStyleAttributeName];
+
+  XCTAssertEqual(style.lineBreakStrategy, NSLineBreakStrategyPushOut);
+}
+
+- (void)testLeavesTheLineBreakStrategyAloneWhenUnset
+{
+  NSParagraphStyle *style = [_attributes attributes][NSParagraphStyleAttributeName];
+
+  XCTAssertTrue(style == nil || style.lineBreakStrategy == NSLineBreakStrategyNone);
+}
+
 - (void)testTurnsLetterSpacingIntoKerning
 {
   _attributes.letterSpacing = 1.5;

@@ -7,6 +7,28 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Added
+
+- `scrollEnabled`, which was previously ignored with a warning. It reaches the
+  multiline `UITextView` as React Native's own iOS view applies it: `false`
+  pins the text at the top, so anything past the field's height is clipped
+  rather than reachable. A single-line field is unaffected — a `UITextField`
+  has nowhere to scroll to, and React Native stores the flag there without
+  acting on it either.
+
+- `showSoftInputOnFocus`, which was previously ignored with a warning. `false`
+  swaps the system keyboard for an empty input view, as React Native's own iOS
+  view does, so the field still focuses and shows its caret with a picker or a
+  custom keyboard drawn in its place. React Native's *types* file the prop
+  under Android; its iOS implementation has always honoured it.
+
+- `lineBreakStrategyIOS`, which was previously ignored with a warning. It
+  becomes `NSParagraphStyle.lineBreakStrategy` alongside the other text
+  attributes, so the Japanese and Korean line-breaking rules (禁則処理) apply to
+  a multiline field. The four values React Native accepts — `none`,
+  `standard`, `hangul-word`, `push-out` — are parsed natively, defaulting to
+  `none` as React Native does.
+
 ## [0.6.0] - 2026-08-18
 
 ### Added

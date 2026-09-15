@@ -54,6 +54,18 @@ static NSWritingDirection RNImeTextInputWritingDirection(const std::string &valu
   return NSWritingDirectionNatural;
 }
 
+/**
+ SYNC: the same four values React Native's `RCTConvert` accepts
+ (`RCTConvert.mm:385-389`), defaulting to none as it does.
+ */
+static NSLineBreakStrategy RNImeTextInputLineBreakStrategy(const std::string &value)
+{
+  if (value == "standard") return NSLineBreakStrategyStandard;
+  if (value == "hangul-word") return NSLineBreakStrategyHangulWordPriority;
+  if (value == "push-out") return NSLineBreakStrategyPushOut;
+  return NSLineBreakStrategyNone;
+}
+
 static UIKeyboardType RNImeTextInputKeyboardType(const std::string &value)
 {
   if (value == "number-pad") return UIKeyboardTypeNumberPad;
@@ -270,6 +282,8 @@ static UIKeyboardAppearance RNImeTextInputKeyboardAppearance(const std::string &
   BOOL _didAutoFocus;
 
   BOOL _multiline;
+  BOOL _scrollEnabled;
+  BOOL _showSoftInputOnFocus;
   BOOL _editable;
   BOOL _secureTextEntry;
   BOOL _autoFocus;
@@ -333,6 +347,8 @@ static UIKeyboardAppearance RNImeTextInputKeyboardAppearance(const std::string &
 
     _attributes = [RNImeTextInputAttributes new];
     _jsText = nil;
+    _scrollEnabled = YES;
+    _showSoftInputOnFocus = YES;
     _editable = YES;
     _autoCorrect = YES;
     // React Native's default: text follows the system text size setting.
@@ -424,7 +440,6 @@ static UIKeyboardAppearance RNImeTextInputKeyboardAppearance(const std::string &
     view.textContainerInset = UIEdgeInsetsZero;
     view.textContainer.lineFragmentPadding = 0;
     view.adjustsFontForContentSizeCategory = NO;
-    view.scrollEnabled = YES;
     _textView = view;
     [self insertSubview:view atIndex:0];
   } else {
@@ -438,6 +453,8 @@ static UIKeyboardAppearance RNImeTextInputKeyboardAppearance(const std::string &
 
   [self applyTextAttributes];
   [self applyPlaceholder];
+  [self applyScrollEnabled];
+  [self applyShowSoftInputOnFocus];
   [self applyEditable];
   [self applySecureTextEntry];
   [self applyKeyboardTraits];
@@ -727,6 +744,39 @@ static UIKeyboardAppearance RNImeTextInputKeyboardAppearance(const std::string &
   // overlaid for the multiline case.
   _textField.attributedPlaceholder = placeholder;
   [self setNeedsLayout];
+}
+
+/**
+ Only the `UITextView` scrolls — a `UITextField` has nowhere to scroll to, and
+ React Native's own single-line view stores the flag without acting on it.
+
+ With scrolling off the text stays pinned at the top: anything past the field's
+ height is clipped rather than reachable, which is what UIKit does and what
+ React Native's iOS `TextInput` therefore does too.
+ */
+- (void)applyScrollEnabled
+{
+  _textView.scrollEnabled = _scrollEnabled;
+}
+
+/**
+ Turning the flag off swaps the system keyboard for an empty input view, the way
+ React Native's own iOS view does (`RCTTextInputComponentView.mm:834-848`) — the
+ field still focuses and shows its caret, so it stays usable with a picker or a
+ custom keyboard drawn above it.
+
+ `reloadInputViews` is what makes the swap visible without a focus round trip:
+ UIKit otherwise keeps the keyboard it raised until the field resigns and
+ becomes first responder again.
+ */
+- (void)applyShowSoftInputOnFocus
+{
+  UIView *inputView = _showSoftInputOnFocus ? nil : [UIView new];
+  _textView.inputView = inputView;
+  _textField.inputView = inputView;
+  if ([self input].isFirstResponder) {
+    [[self input] reloadInputViews];
+  }
 }
 
 - (void)applyEditable
@@ -1285,6 +1335,7 @@ static UIKeyboardAppearance RNImeTextInputKeyboardAppearance(const std::string &
   attributes.shadowOffset = CGSizeMake(newProps.textShadowOffsetWidth, newProps.textShadowOffsetHeight);
   attributes.shadowRadius = newProps.textShadowRadius;
   attributes.writingDirection = RNImeTextInputWritingDirection(newProps.writingDirection);
+  attributes.lineBreakStrategy = RNImeTextInputLineBreakStrategy(newProps.lineBreakStrategyIOS);
 
   if (![attributes isEqualToAttributes:_attributes]) {
     _attributes = attributes;
@@ -1297,6 +1348,16 @@ static UIKeyboardAppearance RNImeTextInputKeyboardAppearance(const std::string &
     _placeholder = RCTNSStringFromString(newProps.placeholder);
     _placeholderColor = RCTUIColorFromSharedColor(newProps.placeholderTextColor);
     [self applyPlaceholder];
+  }
+
+  if (old == nullptr || newProps.scrollEnabled != old->scrollEnabled) {
+    _scrollEnabled = newProps.scrollEnabled;
+    [self applyScrollEnabled];
+  }
+
+  if (old == nullptr || newProps.showSoftInputOnFocus != old->showSoftInputOnFocus) {
+    _showSoftInputOnFocus = newProps.showSoftInputOnFocus;
+    [self applyShowSoftInputOnFocus];
   }
 
   if (old == nullptr || newProps.editable != old->editable) {

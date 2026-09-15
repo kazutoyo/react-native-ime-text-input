@@ -47,6 +47,12 @@ export interface NativeProps extends ViewProps {
   placeholder?: string;
   placeholderTextColor?: ColorValue;
   multiline?: CodegenTypes.WithDefault<boolean, false>;
+  /**
+   * Multiline only — a `UITextField` does not scroll. `false` pins the text at
+   * the top, so anything past the field's height is clipped rather than
+   * reachable, which is what React Native's own iOS view does.
+   */
+  scrollEnabled?: CodegenTypes.WithDefault<boolean, true>;
   /** 0 means unlimited, matching React Native. */
   maxLength?: CodegenTypes.WithDefault<CodegenTypes.Int32, 0>;
 
@@ -92,10 +98,22 @@ export interface NativeProps extends ViewProps {
   textShadowOffsetHeight?: CodegenTypes.WithDefault<CodegenTypes.Double, 0>;
   textShadowRadius?: CodegenTypes.WithDefault<CodegenTypes.Double, 0>;
   writingDirection?: string;
+  /**
+   * The Japanese/Korean line-breaking rules (禁則処理), as a plain string for
+   * the same reason as `fontWeight`. Empty means "not set", which is UIKit's
+   * `NSLineBreakStrategyNone` — the same default React Native uses.
+   */
+  lineBreakStrategyIOS?: string;
 
   // -- Behaviour --
 
   editable?: CodegenTypes.WithDefault<boolean, true>;
+  /**
+   * `false` swaps the system keyboard for an empty input view, so focusing the
+   * field shows the caret without raising it — the way React Native's own iOS
+   * view implements it, despite its types filing the prop under Android.
+   */
+  showSoftInputOnFocus?: CodegenTypes.WithDefault<boolean, true>;
   secureTextEntry?: CodegenTypes.WithDefault<boolean, false>;
   autoFocus?: CodegenTypes.WithDefault<boolean, false>;
   selectTextOnFocus?: CodegenTypes.WithDefault<boolean, false>;
