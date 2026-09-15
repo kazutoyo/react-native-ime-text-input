@@ -55,6 +55,7 @@ struct TestProps {
   double letterSpacing = 0;
   std::string textDecorationLine;
   std::string smartInsertDelete;
+  std::string lineBreakStrategyIOS;
   bool showSoftInputOnFocus = true;
   std::string passwordRules;
   std::string clearButtonMode;
@@ -114,6 +115,7 @@ struct TestProps {
   next->letterSpacing = _values.letterSpacing;
   next->textDecorationLine = _values.textDecorationLine;
   next->smartInsertDelete = _values.smartInsertDelete;
+  next->lineBreakStrategyIOS = _values.lineBreakStrategyIOS;
   next->showSoftInputOnFocus = _values.showSoftInputOnFocus;
   next->passwordRules = _values.passwordRules;
   next->clearButtonMode = _values.clearButtonMode;
@@ -502,6 +504,26 @@ struct TestProps {
   }];
 
   XCTAssertNil([_view input].inputView);
+}
+
+- (void)testTheLineBreakStrategyReachesTheTypingAttributes
+{
+  [self applyProps:^(TestProps &props) {
+    props.lineBreakStrategyIOS = "push-out";
+  }];
+
+  NSParagraphStyle *style =
+      ((UITextView *)[_view input]).typingAttributes[NSParagraphStyleAttributeName];
+
+  XCTAssertEqual(style.lineBreakStrategy, NSLineBreakStrategyPushOut);
+}
+
+- (void)testAnUnsetLineBreakStrategyLeavesUIKitsDefault
+{
+  NSParagraphStyle *style =
+      ((UITextView *)[_view input]).typingAttributes[NSParagraphStyleAttributeName];
+
+  XCTAssertTrue(style == nil || style.lineBreakStrategy == NSLineBreakStrategyNone);
 }
 
 #pragma mark - Input traits

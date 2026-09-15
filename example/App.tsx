@@ -80,6 +80,11 @@ export default function App() {
           </Framed>
         </Section>
 
+        <Section label="9. lineBreakStrategyIOS — none (top) / push-out (bottom)">
+          <Kinsoku strategy="none" testID="kinsoku-none" />
+          <Kinsoku strategy="push-out" testID="kinsoku-push-out" />
+        </Section>
+
         <Text style={styles.hint}>end of screen</Text>
       </ScrollView>
 
@@ -225,6 +230,34 @@ function SecureAndMax() {
   );
 }
 
+/**
+ * A deliberately tight case for the line-breaking rules (禁則処理): the field is
+ * 11 full-width characters wide and every clause puts a `、` in the twelfth
+ * place, where a line may not start.
+ *
+ * Both strategies agree here on iOS 26 — the default already pushes the
+ * character before it down rather than squeezing the `、` in — so this is a
+ * place to compare them by eye, not a difference to expect. That the value
+ * reaches `NSParagraphStyle.lineBreakStrategy` at all is asserted in the
+ * native tests.
+ */
+const KINSOKU = 'あいうえおかきくけこさ、'.repeat(5);
+
+/** The same Japanese text under two line-breaking strategies. */
+function Kinsoku({ strategy, testID }: { strategy: 'none' | 'push-out'; testID: string }) {
+  return (
+    <Framed>
+      <TextInput
+        style={styles.kinsoku}
+        defaultValue={KINSOKU}
+        multiline
+        lineBreakStrategyIOS={strategy}
+        testID={testID}
+      />
+    </Framed>
+  );
+}
+
 /** More text than `maxHeight` can show, so the field is always overflowing. */
 const OVERFLOWING = 'A field prefilled past the height its style allows. '.repeat(6);
 
@@ -313,6 +346,13 @@ const styles = StyleSheet.create({
     fontSize: 17,
     maxHeight: 76,
     paddingHorizontal: 10,
+  },
+  kinsoku: {
+    backgroundColor: '#ffffff',
+    color: '#000000',
+    fontSize: 17,
+    paddingHorizontal: 10,
+    width: 207,
   },
   attributed: {
     backgroundColor: '#ffffff',

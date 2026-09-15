@@ -98,6 +98,12 @@ export interface NativeProps extends ViewProps {
   textShadowOffsetHeight?: CodegenTypes.WithDefault<CodegenTypes.Double, 0>;
   textShadowRadius?: CodegenTypes.WithDefault<CodegenTypes.Double, 0>;
   writingDirection?: string;
+  /**
+   * The Japanese/Korean line-breaking rules (禁則処理), as a plain string for
+   * the same reason as `fontWeight`. Empty means "not set", which is UIKit's
+   * `NSLineBreakStrategyNone` — the same default React Native uses.
+   */
+  lineBreakStrategyIOS?: string;
 
   // -- Behaviour --
 

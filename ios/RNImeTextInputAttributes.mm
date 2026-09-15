@@ -36,6 +36,7 @@
   copy.shadowOffset = _shadowOffset;
   copy.shadowRadius = _shadowRadius;
   copy.writingDirection = _writingDirection;
+  copy.lineBreakStrategy = _lineBreakStrategy;
   return copy;
 }
 
@@ -103,8 +104,8 @@
     attributes[NSForegroundColorAttributeName] = _color;
   }
 
-  BOOL needsParagraphStyle =
-      _lineHeight > 0 || _textAlign != NSTextAlignmentNatural || _writingDirection != NSWritingDirectionNatural;
+  BOOL needsParagraphStyle = _lineHeight > 0 || _textAlign != NSTextAlignmentNatural ||
+      _writingDirection != NSWritingDirectionNatural || _lineBreakStrategy != NSLineBreakStrategyNone;
   if (needsParagraphStyle) {
     NSMutableParagraphStyle *paragraphStyle = [NSMutableParagraphStyle new];
     paragraphStyle.alignment = _textAlign;
@@ -116,6 +117,9 @@
       CGFloat lineHeight = _lineHeight * _fontSizeMultiplier;
       paragraphStyle.minimumLineHeight = lineHeight;
       paragraphStyle.maximumLineHeight = lineHeight;
+    }
+    if (_lineBreakStrategy != NSLineBreakStrategyNone) {
+      paragraphStyle.lineBreakStrategy = _lineBreakStrategy;
     }
     if (_writingDirection != NSWritingDirectionNatural) {
       paragraphStyle.baseWritingDirection = _writingDirection;
@@ -168,7 +172,7 @@
       _decorationStyle == other.decorationStyle &&
       (_shadowColor == other.shadowColor || [_shadowColor isEqual:other.shadowColor]) &&
       CGSizeEqualToSize(_shadowOffset, other.shadowOffset) && _shadowRadius == other.shadowRadius &&
-      _writingDirection == other.writingDirection;
+      _writingDirection == other.writingDirection && _lineBreakStrategy == other.lineBreakStrategy;
 }
 
 @end

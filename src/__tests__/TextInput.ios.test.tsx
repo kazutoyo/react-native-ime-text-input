@@ -437,6 +437,18 @@ describe('<TextInput> props reaching the native view', () => {
     expect(nativeProps().showSoftInputOnFocus).toBe(true);
   });
 
+  it('sends lineBreakStrategyIOS down', async () => {
+    await render(<TextInput testID="input" multiline lineBreakStrategyIOS="push-out" />);
+
+    expect(nativeProps().lineBreakStrategyIOS).toBe('push-out');
+  });
+
+  it('sends an empty lineBreakStrategyIOS when none is given', async () => {
+    await render(<TextInput testID="input" />);
+
+    expect(nativeProps().lineBreakStrategyIOS).toBe('');
+  });
+
   it('drops the props that do nothing on iOS, and warns', async () => {
     await render(<TextInput testID="input" onScroll={() => {}} dataDetectorTypes="link" />);
 

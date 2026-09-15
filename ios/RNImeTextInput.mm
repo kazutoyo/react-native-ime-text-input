@@ -54,6 +54,18 @@ static NSWritingDirection RNImeTextInputWritingDirection(const std::string &valu
   return NSWritingDirectionNatural;
 }
 
+/**
+ SYNC: the same four values React Native's `RCTConvert` accepts
+ (`RCTConvert.mm:385-389`), defaulting to none as it does.
+ */
+static NSLineBreakStrategy RNImeTextInputLineBreakStrategy(const std::string &value)
+{
+  if (value == "standard") return NSLineBreakStrategyStandard;
+  if (value == "hangul-word") return NSLineBreakStrategyHangulWordPriority;
+  if (value == "push-out") return NSLineBreakStrategyPushOut;
+  return NSLineBreakStrategyNone;
+}
+
 static UIKeyboardType RNImeTextInputKeyboardType(const std::string &value)
 {
   if (value == "number-pad") return UIKeyboardTypeNumberPad;
@@ -1323,6 +1335,7 @@ static UIKeyboardAppearance RNImeTextInputKeyboardAppearance(const std::string &
   attributes.shadowOffset = CGSizeMake(newProps.textShadowOffsetWidth, newProps.textShadowOffsetHeight);
   attributes.shadowRadius = newProps.textShadowRadius;
   attributes.writingDirection = RNImeTextInputWritingDirection(newProps.writingDirection);
+  attributes.lineBreakStrategy = RNImeTextInputLineBreakStrategy(newProps.lineBreakStrategyIOS);
 
   if (![attributes isEqualToAttributes:_attributes]) {
     _attributes = attributes;

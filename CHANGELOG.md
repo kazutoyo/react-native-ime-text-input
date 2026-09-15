@@ -22,6 +22,13 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   custom keyboard drawn in its place. React Native's *types* file the prop
   under Android; its iOS implementation has always honoured it.
 
+- `lineBreakStrategyIOS`, which was previously ignored with a warning. It
+  becomes `NSParagraphStyle.lineBreakStrategy` alongside the other text
+  attributes, so the Japanese and Korean line-breaking rules (禁則処理) apply to
+  a multiline field. The four values React Native accepts — `none`,
+  `standard`, `hangul-word`, `push-out` — are parsed natively, defaulting to
+  `none` as React Native does.
+
 ## [0.6.0] - 2026-08-18
 
 ### Added

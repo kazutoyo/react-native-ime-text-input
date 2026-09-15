@@ -41,6 +41,11 @@
 @property (nonatomic, assign) CGFloat shadowRadius;
 /** `NSWritingDirectionNatural` means unset. */
 @property (nonatomic, assign) NSWritingDirection writingDirection;
+/**
+ The Japanese/Korean line-breaking rules (禁則処理).
+ `NSLineBreakStrategyNone` means unset, which is also UIKit's default.
+ */
+@property (nonatomic, assign) NSLineBreakStrategy lineBreakStrategy;
 
 /** The resolved font, including the italic trait. */
 @property (nonatomic, readonly, nonnull) UIFont *font;
