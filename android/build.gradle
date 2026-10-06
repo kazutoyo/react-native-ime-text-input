@@ -1,0 +1,32 @@
+// Android ships one native module and no view: the field itself is React
+// Native's own TextInput. The module only exists for `commitComposition()`,
+// which has no JS-reachable equivalent on Android (see ImeTextInputModule.kt).
+//
+// The React Native plugin is applied anyway because autolinking always links
+// this package's codegen output on Android, and the spec there describes the
+// iOS component. Generating it keeps the build whole; nothing renders it.
+apply plugin: 'com.android.library'
+apply plugin: 'org.jetbrains.kotlin.android'
+apply plugin: 'com.facebook.react'
+
+def safeExtGet(prop, fallback) {
+  rootProject.ext.has(prop) ? rootProject.ext.get(prop) : fallback
+}
+
+android {
+  namespace 'com.kazutoyo.imetextinput'
+  compileSdk safeExtGet('compileSdkVersion', 36)
+
+  defaultConfig {
+    minSdk safeExtGet('minSdkVersion', 24)
+  }
+}
+
+repositories {
+  google()
+  mavenCentral()
+}
+
+dependencies {
+  implementation 'com.facebook.react:react-android'
+}

@@ -23,12 +23,13 @@
     "build",
     "src",
     "ios",
+    "android",
     "*.podspec",
-    "react-native.config.js",
     "CHANGELOG.md",
     "README.md",
     "README.ja.md",
     "!ios/build",
+    "!android/build",
     "!src/**/__tests__"
   ],
   "scripts": {
@@ -48,6 +49,9 @@
       "componentProvider": {
         "RNImeTextInput": "RNImeTextInput"
       }
+    },
+    "android": {
+      "javaPackageName": "com.kazutoyo.imetextinput"
     }
   },
   "peerDependencies": {

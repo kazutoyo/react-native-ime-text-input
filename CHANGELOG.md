@@ -7,6 +7,18 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Fixed
+
+- `commitComposition()` on Android, which was a no-op on the assumption that
+  the IME ends a composition when the value is replaced. It does not: React
+  Native puts the composing span back after replacing the text, so an
+  insertion made mid-conversion left the conversion open with the caret
+  outside it. Gboard then typed the next keystroke into the old conversion;
+  IMEs that read it as a cancelled conversion deleted the composed text. A
+  native module now drops the composing span and restarts input, leaving the
+  text as it is. Apps need a native rebuild to pick it up; an older binary
+  keeps the previous no-op.
+
 ## [0.7.0] - 2026-09-15
 
 ### Added

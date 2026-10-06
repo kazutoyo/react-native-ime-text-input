@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import { createRef } from 'react';
+import { NativeModules } from 'react-native';
 
 import { TextInput } from '../TextInput';
 import type { TextInputRef } from '../types';
@@ -82,14 +83,36 @@ describe('<TextInput> on Android and web', () => {
       expect(ref.current?.isFocused()).toBe(false);
     });
 
-    // React Native's own `TextInput` commits the composition by itself when the
-    // value changes, so there is nothing to do here — but the method has to
-    // exist, or cross-platform code calling it would crash off iOS.
-    it('commitComposition() does nothing, without complaining', async () => {
-      const ref = createRef<TextInputRef>();
-      await render(<TextInput testID="input" ref={ref} />);
+    // React Native's own `TextInput` keeps the IME's composing span across a
+    // value update and only moves the caret out of it, so the composition has
+    // to be ended natively before an app-side insertion.
+    describe('commitComposition()', () => {
+      afterEach(() => {
+        delete NativeModules.RNImeTextInputModule;
+        jest.restoreAllMocks();
+      });
 
-      expect(() => ref.current?.commitComposition()).not.toThrow();
+      it('ends the composition natively, on the mounted view', async () => {
+        const commitComposition = jest.fn();
+        NativeModules.RNImeTextInputModule = { commitComposition };
+        // React Native exports it through a getter, so the getter is what gets
+        // replaced — on the module object itself; `import * as` would be a copy.
+        jest.spyOn(require('react-native'), 'findNodeHandle', 'get').mockReturnValue(() => 42);
+        const ref = createRef<TextInputRef>();
+        await render(<TextInput testID="input" ref={ref} />);
+
+        ref.current?.commitComposition();
+
+        expect(commitComposition).toHaveBeenCalledWith(42);
+      });
+
+      // An app binary built before the module existed still runs newer JS.
+      it('does nothing, without complaining, when the native module is missing', async () => {
+        const ref = createRef<TextInputRef>();
+        await render(<TextInput testID="input" ref={ref} />);
+
+        expect(() => ref.current?.commitComposition()).not.toThrow();
+      });
     });
 
     it('survives setSelection on a node that has no such method', async () => {
