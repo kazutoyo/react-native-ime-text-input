@@ -30,9 +30,11 @@ export type TextInputRef = {
    * The confirmation takes the composed text as it stands, the same as tapping
    * elsewhere in the field would — it does not pick a conversion candidate.
    *
-   * iOS only. On Android and web this is a no-op: React Native's own
-   * `TextInput` renders there, and their IMEs commit on their own when the
-   * value changes.
+   * On Android, React Native keeps the composition across a value update
+   * and only moves the caret out of it; depending on the IME, the next
+   * keystroke then lands inside the old composition or the composed text is
+   * deleted. This ends the composition natively first. On web it is a no-op:
+   * the browser ends the composition itself when the value changes.
    */
   commitComposition: () => void;
 };

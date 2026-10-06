@@ -25,7 +25,7 @@ New Architecture の iOS では、**日本語・中国語・韓国語の未確�
 | プラットフォーム | 描画するもの | |
 | --- | --- | --- |
 | iOS | `UITextField` / `multiline` なら `UITextView` | Fabric の経路を通らない |
-| Android | React Native の `TextInput` | `EditText` は元から影響なし |
+| Android | React Native の `TextInput` | `EditText` は変換を正しく描く。`commitComposition()` だけネイティブモジュールで実装 |
 | Web | React Native の `TextInput` | 変換はブラウザが扱う |
 
 置き換えるのは iOS だけです。他のプラットフォームは React Native の実装をそのまま使うので、挙動がずれる余地がありません。
@@ -117,7 +117,7 @@ const insertEmoji = (emoji: string) => {
 確定されるのは画面に出ている状態そのままです（フィールドの別の場所をタップしたときと同じで、変換候補を選ぶわけではありません）。
 React Native の `TextInput` には iOS でこれを行う手段がそもそもありません。変換中の `value` 書き込みが変換状態を壊す実装なので、挿入は反映されるものの下線も一緒に消えます。
 
-Android と web では何もする必要がありません（値が置き換われば IME 側が自分で確定します）。これらのプラットフォームでは何もしないメソッドなので、同じコードがそのまま動きます。
+Android でも必要です。Android の React Native の `TextInput` は、テキストを置き換えたあと、下の文字が変わっていなければ IME の composing span を張り直します。そのため挿入しても変換は終わらず、カーソルだけがその外へ動きます。その後どうなるかは IME 次第で、Gboard は変換を続けるので次に打った文字が古い変換の中へ入り（`ねこ😄` + `ね` → `ねこね😄`）、別の IME は変換の取り消しとみなして変換中の文字を消します。`commitComposition()` はネイティブで composing span を外して入力を再開させ、テキストはそのまま残します。web では何もしません（ブラウザが自分で変換を終わらせます）。同じコードがどのプラットフォームでも動きます。このモジュールが入る前にビルドしたアプリでは、例外にならず従来どおり何もしません。
 
 ### iOS で効かない props とスタイルプロパティ
 
@@ -148,7 +148,7 @@ Android と web では何もする必要がありません（値が置き換わ�
 
 置き換え実装が壊しがちな点は、そのまま維持しています。ツリーに余分な View は入らないので（コンポーネント自体がネイティブビューです）、`flex` / `margin` / 兄弟要素のレイアウトは従来通りです。`multiline` の自動サイズも React Native と同じ仕組みで同じように動きます。
 
-Android と web は React Native の `TextInput` をそのまま描画します。唯一ライブラリ自身のコードなのが ref のラッパーで、`TextInputRef` だけがこの2つのプラットフォームで乖離しうる箇所です。web では react-native-web の ref が `clear` と `isFocused` しか持たないため、`setSelection()` は DOM の `setSelectionRange` に落ちます。
+Android と web は React Native の `TextInput` をそのまま描画します。唯一ライブラリ自身のコードなのが ref のラッパーで、`TextInputRef` だけがこの2つのプラットフォームで乖離しうる箇所です。Android の `commitComposition()` はネイティブモジュールを呼びます（上記）。web では react-native-web の ref が `clear` と `isFocused` しか持たないため、`setSelection()` は DOM の `setSelectionRange` に落ちます。
 
 ## 仕組み
 
@@ -181,7 +181,7 @@ codegen の view config が生成され、pod がビルドでき、ネイティ�
 
 React Native 0.85.3 / Expo SDK 56 の実アプリでも確認されています（変換下線、`ref.setSelection()`、multiline の自動リサイズ、`selection` / `onSelectionChange` / `cursorColor` / `selectionColor`）。
 
-プラットフォームごとのファイル解決はバンドルで確認しています。Android バンドルには `src/TextInput.tsx` が含まれ、ネイティブコンポーネントへの参照は0件です。また CI が、pack した tarball を素の consumer アプリに install してバンドルするので、example の alias 経由ではなく publish される形が検証されます。Android は実機での動作確認をしていません。
+プラットフォームごとのファイル解決はバンドルで確認しています。Android バンドルには `src/TextInput.tsx` が含まれ、ネイティブコンポーネントへの参照は0件です。また CI が、pack した tarball を素の consumer アプリに install してバンドルするので、example の alias 経由ではなく publish される形が検証されます。Android は `commitComposition()` だけエミュレータで確認しています（Gboard 日本語 12 キーで変換中に 😄 を押し、続けて打った文字が古い変換の中ではなく絵文字の後ろに入ること）。
 
 ## 開発
 
@@ -217,6 +217,9 @@ src/
   RNImeTextInputNativeComponent.ts  codegen spec — props / イベント / コマンドの source of truth
   TextInput.ios.tsx                 React Native の props → ネイティブ props
   TextInput.tsx                     Android / web — React Native へパススルー
+  commitComposition.android.ts      Android — ネイティブモジュールを呼ぶ
+android/
+  ImeTextInputModule.kt             変換を終わらせる（composing span を外し、入力を再開）
   splitStyle.ts                     style → ビューのスタイル + タイポグラフィ props
   unsupported.ts                    iOS で無視する props（1回ずつ警告）
 ios/

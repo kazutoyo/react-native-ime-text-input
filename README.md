@@ -24,10 +24,10 @@ This library owns the UIKit views instead, and never touches the text buffer whi
 | Platform | Renders | |
 | --- | --- | --- |
 | iOS | `UITextField` / `UITextView` when `multiline` | Avoids the Fabric path entirely |
-| Android | React Native's `TextInput` | `EditText` was never affected |
+| Android | React Native's `TextInput` | `EditText` draws composition correctly; a native module backs `commitComposition()` |
 | Web | React Native's `TextInput` | The browser handles composition itself |
 
-Only iOS is replaced, so the other platforms keep React Native's behaviour exactly — there is nothing that can diverge.
+Only iOS is replaced, so the other platforms keep React Native's behaviour exactly. The one addition is `commitComposition()` on Android (below).
 
 ## Install
 
@@ -112,7 +112,7 @@ const insertEmoji = (emoji: string) => {
 
 The conversion is confirmed as it stands, the same as tapping elsewhere in the field would — it does not pick a candidate. React Native's `TextInput` has no way to do this on iOS at all: writing `value` mid-conversion is what clears the composition there, so the insertion lands but the underline goes with it.
 
-Nothing to do on Android and web — their IMEs commit on their own when the value is replaced — and the method is a no-op there so the same code runs everywhere.
+Android needs it too. React Native's `TextInput` there puts the IME's composing span back after replacing the text, wherever the characters under it are unchanged, so the conversion survives the insertion and only the caret moves out of it. What happens next depends on the IME: Gboard keeps composing, so the next keystroke lands inside the old conversion (`ねこ😄` + `ね` → `ねこね😄`), while others treat it as a cancelled conversion and delete the composed text. `commitComposition()` drops the composing span and restarts input natively, leaving the text as it is. On web it is a no-op — the browser ends the composition itself — so the same code runs everywhere. An app binary built before this module existed keeps the old no-op rather than throwing.
 
 ### Ignored on iOS
 
@@ -142,7 +142,7 @@ The rest React Native core does implement on iOS, and they are simply not implem
 
 Unchanged, because these are what a replacement usually gets wrong: there is no extra view in the tree — the component *is* the native view, so `flex`, `margin` and sibling layout behave exactly as before; and `multiline` self-sizing matches React Native's, through the same mechanism.
 
-Android and web render React Native's `TextInput` unchanged. The one piece of library code there is the ref wrapper, so `TextInputRef` is the only place those platforms can diverge — on web, `setSelection()` falls through to the DOM's `setSelectionRange`, because react-native-web's ref exposes only `clear` and `isFocused`.
+Android and web render React Native's `TextInput` unchanged. The one piece of library code there is the ref wrapper, so `TextInputRef` is the only place those platforms can diverge — on Android, `commitComposition()` calls a native module (see above); on web, `setSelection()` falls through to the DOM's `setSelectionRange`, because react-native-web's ref exposes only `clear` and `isFocused`.
 
 ## How it works
 
@@ -175,7 +175,7 @@ React Native's codegen understands in 0.80, and only reached its public types in
 
 Also verified in a production app on React Native 0.85.3 / Expo SDK 56 — composition underline, `ref.setSelection()`, multiline resizing, `selection` / `onSelectionChange` / `cursorColor` / `selectionColor`.
 
-Platform resolution is verified by bundling: the Android bundle contains `src/TextInput.tsx` and zero references to the native component, and CI bundles a plain consumer app against the packed tarball so the published layout is exercised, not just the example's aliased one. Android has not been run on a device.
+Platform resolution is verified by bundling: the Android bundle contains `src/TextInput.tsx` and zero references to the native component, and CI bundles a plain consumer app against the packed tarball so the published layout is exercised, not just the example's aliased one. Android has been run on an emulator for `commitComposition()` only (Gboard, Japanese 12-key: compose, tap 😄, type again — the keystroke lands after the emoji, not inside the old conversion).
 
 ## Development
 
@@ -214,6 +214,9 @@ src/
   RNImeTextInputNativeComponent.ts  codegen spec — the source of truth for props, events, commands
   TextInput.ios.tsx                 React Native props → native props
   TextInput.tsx                     Android / web — passes through to React Native
+  commitComposition.android.ts      Android — calls the native module
+android/
+  ImeTextInputModule.kt             ends a composition: drop the composing span, restart input
   splitStyle.ts                     style → view style + typography props
   unsupported.ts                    props ignored on iOS, warned once each
 ios/

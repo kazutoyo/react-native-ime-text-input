@@ -1,6 +1,7 @@
 import { useImperativeHandle, useRef, type ComponentRef } from 'react';
 import { TextInput as RNTextInput, type TextInputProps as RNTextInputProps } from 'react-native';
 
+import { commitCompositionOn } from './commitComposition';
 import { setSelectionOn } from './setSelection';
 import type { TextInputProps, TextInputRef } from './types';
 
@@ -9,8 +10,9 @@ import type { TextInputProps, TextInputRef } from './types';
  *
  * Only iOS needs replacing. The IME composition bug this library exists to fix
  * is specific to Fabric's iOS text input — Android's `EditText` and the
- * browser's `<input>` handle composition correctly — so everywhere else passes
- * straight through and keeps perfect fidelity for free.
+ * browser's `<input>` draw composition correctly — so everywhere else passes
+ * straight through and keeps perfect fidelity for free. The one exception is
+ * `commitComposition()`, which Android needs a native module for.
  */
 export function TextInput({ ref, ...props }: TextInputProps) {
   // Derived from the component rather than named directly: under the Strict
@@ -26,10 +28,9 @@ export function TextInput({ ref, ...props }: TextInputProps) {
       clear: () => innerRef.current?.clear(),
       isFocused: () => innerRef.current?.isFocused() ?? false,
       setSelection: (start: number, end: number) => setSelectionOn(innerRef.current, start, end),
-      // Nothing to do: Android's `EditText` and the browser's `<input>` end a
-      // composition themselves when the value is replaced. The method exists so
-      // that cross-platform code can call it unconditionally.
-      commitComposition: () => {},
+      // Android keeps the composition across a value update, so it is ended
+      // natively; the browser ends it itself (see commitComposition.*.ts).
+      commitComposition: () => commitCompositionOn(innerRef.current),
     }),
     []
   );
