@@ -23,6 +23,7 @@ using namespace facebook::react;
 - (CGFloat)fontSizeMultiplierForContentSizeCategory:(UIContentSizeCategory)category;
 - (CGFloat)effectiveFontSizeMultiplierForBase:(CGFloat)base;
 - (void)contentSizeCategoryDidChange;
+- (CGSize)measureContentSize;
 @end
 
 /**
@@ -51,6 +52,7 @@ struct TestProps {
   int textRevision = 0;
   int mostRecentEventCount = 0;
   int maxLength = 0;
+  int numberOfLines = 0;
   double fontSize = 17;
   double lineHeight = 0;
   double letterSpacing = 0;
@@ -116,6 +118,7 @@ struct TestProps {
   next->textRevision = _values.textRevision;
   next->mostRecentEventCount = _values.mostRecentEventCount;
   next->maxLength = _values.maxLength;
+  next->numberOfLines = _values.numberOfLines;
   next->fontSize = _values.fontSize;
   next->lineHeight = _values.lineHeight;
   next->letterSpacing = _values.letterSpacing;
@@ -577,6 +580,44 @@ struct TestProps {
   UIFont *font = ((UITextView *)[_view input]).typingAttributes[NSFontAttributeName];
 
   XCTAssertNil(font.fontDescriptor.fontAttributes[UIFontDescriptorFeatureSettingsAttribute]);
+}
+
+#pragma mark - numberOfLines
+
+/** The content height the field reports for `text`, with the current props. */
+- (CGFloat)contentHeightFor:(NSString *)text
+{
+  [_view setTextValue:text fromJS:YES];
+  return [_view measureContentSize].height;
+}
+
+- (void)testNumberOfLinesCapsTheHeightTheFieldGrowsTo
+{
+  CGFloat twoLines = [self contentHeightFor:@"1\n2"];
+  [self applyProps:^(TestProps &props) {
+    props.numberOfLines = 2;
+  }];
+
+  CGFloat capped = [self contentHeightFor:@"1\n2\n3\n4\n5"];
+
+  XCTAssertEqualWithAccuracy(capped, twoLines, 0.5);
+}
+
+- (void)testNumberOfLinesLeavesShorterTextAlone
+{
+  CGFloat oneLine = [self contentHeightFor:@"1"];
+  [self applyProps:^(TestProps &props) {
+    props.numberOfLines = 3;
+  }];
+
+  XCTAssertEqualWithAccuracy([self contentHeightFor:@"1"], oneLine, 0.5);
+}
+
+- (void)testNoNumberOfLinesLetsTheFieldGrow
+{
+  CGFloat twoLines = [self contentHeightFor:@"1\n2"];
+
+  XCTAssertGreaterThan([self contentHeightFor:@"1\n2\n3\n4\n5"], twoLines + 1);
 }
 
 #pragma mark - Data detectors

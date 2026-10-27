@@ -11,7 +11,7 @@
  *   `blurOnSubmit`, which is React Native's own deprecated alias for
  *   `submitBehavior`.
  * - Simply not implemented here yet, though React Native core implements them
- *   on iOS: `experimental_acceptDragAndDropTypes` and `numberOfLines` / `rows`.
+ *   on iOS: `experimental_acceptDragAndDropTypes`.
  *
  * They stay in the prop type either way: only iOS is replaced, and on Android
  * and web React Native's own `TextInput` honours them. Removing them from the
@@ -28,9 +28,7 @@ export const UNSUPPORTED_PROPS = [
   'importantForAutofill',
   'inlineImageLeft',
   'inlineImagePadding',
-  'numberOfLines',
   'returnKeyLabel',
-  'rows',
   'textBreakStrategy',
   'underlineColorAndroid',
 ] as const;

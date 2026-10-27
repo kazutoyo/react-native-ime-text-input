@@ -55,6 +55,12 @@ export interface NativeProps extends ViewProps {
   scrollEnabled?: CodegenTypes.WithDefault<boolean, true>;
   /** 0 means unlimited, matching React Native. */
   maxLength?: CodegenTypes.WithDefault<CodegenTypes.Int32, 0>;
+  /**
+   * Caps the height a multiline field grows to, in lines; past it the text
+   * scrolls. 0 means no cap. As in React Native's iOS view this only feeds the
+   * measurement — it is not a fixed height, and the text itself is not cut.
+   */
+  numberOfLines?: CodegenTypes.WithDefault<CodegenTypes.Int32, 0>;
 
   // -- Typography --
 

@@ -17,6 +17,9 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - `onScroll` on iOS, for `multiline` fields, with React Native's own payload
   (`contentOffset`, `contentInset`, `contentSize`, `layoutMeasurement`,
   `zoomScale`, `responderIgnoreScroll`).
+- `numberOfLines` and `rows` on iOS. As in React Native's iOS view they cap
+  the height a `multiline` field grows to — past it the text scrolls — rather
+  than fixing the height; `rows` wins when both are given.
 
 ### Added
 

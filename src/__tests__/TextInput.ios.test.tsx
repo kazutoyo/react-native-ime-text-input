@@ -556,10 +556,30 @@ describe('<TextInput> props reaching the native view', () => {
     expect(nativeProps().fontVariant).toBe('');
   });
 
-  it('drops the props that do nothing on iOS, and warns', async () => {
-    await render(<TextInput testID="input" numberOfLines={2} underlineColorAndroid="red" />);
+  it('sends numberOfLines down', async () => {
+    await render(<TextInput testID="input" multiline numberOfLines={3} />);
 
-    expect(nativeProps().numberOfLines).toBeUndefined();
+    expect(nativeProps().numberOfLines).toBe(3);
+    expect(console.warn).not.toHaveBeenCalled();
+  });
+
+  it('prefers rows over numberOfLines, as React Native does', async () => {
+    await render(<TextInput testID="input" multiline rows={2} numberOfLines={5} />);
+
+    expect(nativeProps().numberOfLines).toBe(2);
+    expect(nativeProps().rows).toBeUndefined();
+  });
+
+  it('sends 0, meaning no cap, when neither is given', async () => {
+    await render(<TextInput testID="input" />);
+
+    expect(nativeProps().numberOfLines).toBe(0);
+  });
+
+  it('drops the props that do nothing on iOS, and warns', async () => {
+    await render(<TextInput testID="input" textBreakStrategy="simple" underlineColorAndroid="red" />);
+
+    expect(nativeProps().textBreakStrategy).toBeUndefined();
     expect(nativeProps().underlineColorAndroid).toBeUndefined();
     expect(console.warn).toHaveBeenCalledTimes(2);
   });
@@ -567,8 +587,6 @@ describe('<TextInput> props reaching the native view', () => {
   // React Native implements these on iOS, but the native view here has no
   // matching prop, so forwarding them used to drop them without a word.
   it.each<[string, unknown]>([
-    ['numberOfLines', 3],
-    ['rows', 3],
     ['experimental_acceptDragAndDropTypes', ['public.plain-text']],
   ])('drops `%s` instead of forwarding it silently, and warns', async (name, value) => {
     await render(<TextInput testID="input" {...({ [name]: value } as object)} />);

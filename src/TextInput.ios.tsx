@@ -155,6 +155,8 @@ export function TextInput(props: TextInputProps) {
     multiline,
     scrollEnabled,
     maxLength,
+    numberOfLines,
+    rows,
     autoFocus,
     selectTextOnFocus,
     clearTextOnFocus,
@@ -320,6 +322,7 @@ export function TextInput(props: TextInputProps) {
       multiline={multiline ?? false}
       scrollEnabled={scrollEnabled ?? true}
       maxLength={maxLength ?? 0}
+      numberOfLines={rows ?? numberOfLines ?? 0}
       editable={isEditable}
       showSoftInputOnFocus={showSoftInputOnFocus ?? true}
       lineBreakStrategyIOS={str(lineBreakStrategyIOS)}

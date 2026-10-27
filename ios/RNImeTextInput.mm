@@ -402,6 +402,8 @@ static UIKeyboardAppearance RNImeTextInputKeyboardAppearance(const std::string &
   BOOL _autoCorrect;
   BOOL _enablesReturnKeyAutomatically;
   NSInteger _maxLength;
+  /// 0 means the field grows without a cap.
+  NSInteger _numberOfLines;
   std::string _submitBehavior;
   std::string _spellCheck;
   UIColor *_selectionColor;
@@ -1269,11 +1271,36 @@ static UIKeyboardAppearance RNImeTextInputKeyboardAppearance(const std::string &
  React Native `TextInput` does. Only real changes are dispatched — this runs on
  every layout and keystroke.
  */
-- (void)notifyContentSizeChange
+/**
+ The height the text needs at the width it gets, capped at `numberOfLines`.
+
+ The cap is measured the way React Native's iOS text layout measures it
+ (`RCTTextLayoutManager.mm`): a standalone container limited to that many
+ lines. Asking the text view's own `layoutManager` instead would drop it from
+ TextKit 2 back to TextKit 1.
+ */
+- (CGFloat)heightOfLines:(NSInteger)lines atWidth:(CGFloat)width
+{
+  NSTextContainer *container = [[NSTextContainer alloc] initWithSize:CGSizeMake(width, CGFLOAT_MAX)];
+  container.lineFragmentPadding = 0;
+  container.maximumNumberOfLines = lines;
+  NSLayoutManager *layoutManager = [NSLayoutManager new];
+  [layoutManager addTextContainer:container];
+  NSAttributedString *text = _textView.attributedText.length > 0
+      ? _textView.attributedText
+      : [[NSAttributedString alloc] initWithString:@"I" attributes:[_attributes attributes]];
+  NSTextStorage *storage = [[NSTextStorage alloc] initWithAttributedString:text];
+  [storage addLayoutManager:layoutManager];
+  [layoutManager ensureLayoutForTextContainer:container];
+  return ceil([layoutManager usedRectForTextContainer:container].size.height);
+}
+
+/** The content-box size the text needs, or zero while there is nothing to measure yet. */
+- (CGSize)measureContentSize
 {
   UIView *input = [self input];
   if (input == nil || self.bounds.size.width <= 0) {
-    return;
+    return CGSizeZero;
   }
   // Measure at the width the text actually gets. The published height must be
   // the content height only: measureContent reports a content-box size and
@@ -1281,7 +1308,7 @@ static UIKeyboardAppearance RNImeTextInputKeyboardAppearance(const std::string &
   UIEdgeInsets padding = [self paddingInsets];
   CGFloat textWidth = self.bounds.size.width - _contentInsets.left - _contentInsets.right;
   if (textWidth <= 0) {
-    return;
+    return CGSizeZero;
   }
   CGSize size;
   if (_textView != nil) {
@@ -1291,9 +1318,21 @@ static UIKeyboardAppearance RNImeTextInputKeyboardAppearance(const std::string &
     CGSize fitted = [input sizeThatFits:CGSizeMake(textWidth + padding.left + padding.right,
                                                    CGFLOAT_MAX)];
     size = CGSizeMake(textWidth, fitted.height - padding.top - padding.bottom);
+    if (_numberOfLines > 0) {
+      size.height = MIN(size.height, [self heightOfLines:_numberOfLines atWidth:textWidth]);
+    }
   } else {
     size = [input sizeThatFits:CGSizeMake(textWidth, CGFLOAT_MAX)];
     size.width = textWidth;
+  }
+  return size;
+}
+
+- (void)notifyContentSizeChange
+{
+  CGSize size = [self measureContentSize];
+  if (size.height <= 0) {
+    return;
   }
 
   if (fabs(size.height - _lastReportedContentSize.height) <= 0.5 &&
@@ -1590,6 +1629,10 @@ static UIKeyboardAppearance RNImeTextInputKeyboardAppearance(const std::string &
   }
 
   _maxLength = newProps.maxLength;
+  if (old == nullptr || newProps.numberOfLines != old->numberOfLines) {
+    _numberOfLines = newProps.numberOfLines;
+    [self notifyContentSizeChange];
+  }
   _autoFocus = newProps.autoFocus;
   _selectTextOnFocus = newProps.selectTextOnFocus;
   _clearTextOnFocus = newProps.clearTextOnFocus;

@@ -15,15 +15,15 @@ describe('findUnsupportedProps', () => {
   it('reports props that have no native equivalent', () => {
     const found = findUnsupportedProps({
       value: 'a',
-      rows: 3,
+      returnKeyLabel: 'Go',
       textBreakStrategy: 'simple',
     });
 
-    expect(found.sort()).toEqual(['rows', 'textBreakStrategy']);
+    expect(found.sort()).toEqual(['returnKeyLabel', 'textBreakStrategy']);
   });
 
   it('ignores unsupported props that are explicitly undefined', () => {
-    expect(findUnsupportedProps({ rows: undefined })).toEqual([]);
+    expect(findUnsupportedProps({ returnKeyLabel: undefined })).toEqual([]);
   });
 
   it('treats every name in UNSUPPORTED_PROPS as unsupported', () => {
@@ -51,23 +51,23 @@ describe('warnUnsupported', () => {
   });
 
   it('warns once per name, however many times it is reported', () => {
-    warnUnsupported('prop', ['rows']);
-    warnUnsupported('prop', ['rows']);
-    warnUnsupported('prop', ['rows']);
+    warnUnsupported('prop', ['returnKeyLabel']);
+    warnUnsupported('prop', ['returnKeyLabel']);
+    warnUnsupported('prop', ['returnKeyLabel']);
 
     expect(warn).toHaveBeenCalledTimes(1);
   });
 
   it('names the offending prop and the library in the message', () => {
-    warnUnsupported('prop', ['rows']);
+    warnUnsupported('prop', ['returnKeyLabel']);
 
     const message = warn.mock.calls[0][0] as string;
-    expect(message).toContain('rows');
+    expect(message).toContain('returnKeyLabel');
     expect(message).toContain('react-native-ime-text-input');
   });
 
   it('says the gap is iOS-only, so the reader does not think the prop is dead everywhere', () => {
-    warnUnsupported('prop', ['rows']);
+    warnUnsupported('prop', ['returnKeyLabel']);
 
     const message = warn.mock.calls[0][0] as string;
     expect(message).toContain('iOS');
@@ -75,7 +75,7 @@ describe('warnUnsupported', () => {
   });
 
   it('warns separately for each distinct name', () => {
-    warnUnsupported('prop', ['rows', 'numberOfLines']);
+    warnUnsupported('prop', ['returnKeyLabel', 'inlineImageLeft']);
 
     expect(warn).toHaveBeenCalledTimes(2);
   });
@@ -97,7 +97,7 @@ describe('warnUnsupported', () => {
     const previous = global.__DEV__;
     global.__DEV__ = false;
     try {
-      warnUnsupported('prop', ['rows']);
+      warnUnsupported('prop', ['returnKeyLabel']);
       expect(warn).not.toHaveBeenCalled();
     } finally {
       global.__DEV__ = previous;
