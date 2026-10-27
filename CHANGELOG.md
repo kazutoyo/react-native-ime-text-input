@@ -9,6 +9,14 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added
 
+- `onPress`, `onPressIn`, `onPressOut` and `rejectResponderTermination` on
+  iOS, through React Native's own pressability on the native view — no
+  wrapper view is added. As in React Native, a press also focuses an editable
+  field, and by default a parent such as a `ScrollView` cannot take the touch
+  away from it.
+
+### Added
+
 - `lineBreakModeIOS` on iOS, as `NSParagraphStyle.lineBreakMode`. Like the
   other text attributes, it is held back while a conversion is open.
 - `fontVariant` on iOS, as font feature settings — the same variants React

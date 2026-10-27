@@ -1,6 +1,7 @@
-import { useEffect, useImperativeHandle, useLayoutEffect, useReducer, useRef } from 'react';
+import { useEffect, useImperativeHandle, useLayoutEffect, useMemo, useReducer, useRef } from 'react';
 import { StyleSheet, type TextStyle } from 'react-native';
 import TextInputState from 'react-native/Libraries/Components/TextInput/TextInputState';
+import usePressability from 'react-native/Libraries/Pressability/usePressability';
 
 import { ARIA_PROPS, mapAriaProps } from './aria';
 import RNImeTextInputNativeComponent, {
@@ -138,6 +139,11 @@ export function TextInput(props: TextInputProps) {
     selection,
     editable,
     readOnly,
+    hitSlop,
+    onPress,
+    onPressIn,
+    onPressOut,
+    rejectResponderTermination = true,
     showSoftInputOnFocus,
     lineBreakStrategyIOS,
     lineBreakModeIOS,
@@ -262,6 +268,29 @@ export function TextInput(props: TextInputProps) {
     Commands.setSelection(nativeRef.current, selectionStart, selectionEnd ?? selectionStart);
   }, [selectionStart, selectionEnd]);
 
+  const isEditable = editable ?? (readOnly === undefined ? true : !readOnly);
+
+  // SYNC: React Native's TextInput.js builds the same config and spreads the
+  // handlers onto its native view. A `Pressable` wrapper would put an extra
+  // view in the tree, which is exactly what this component promises not to do.
+  const pressabilityConfig = useMemo(
+    () => ({
+      cancelable: !rejectResponderTermination,
+      hitSlop,
+      onPress: (event: Parameters<NonNullable<typeof onPress>>[0]) => {
+        onPress?.(event);
+        if (isEditable && nativeRef.current) {
+          Commands.focus(nativeRef.current);
+        }
+      },
+      onPressIn,
+      onPressOut,
+    }),
+    [isEditable, hitSlop, onPress, onPressIn, onPressOut, rejectResponderTermination]
+  );
+  // Focus and blur come from the field itself, so pressability's are dropped.
+  const { onBlur: _onBlur, onFocus: _onFocus, ...pressHandlers } = usePressability(pressabilityConfig);
+
   const flat = (StyleSheet.flatten(style) ?? {}) as TextStyle;
   const { viewStyle, text: textStyle, unsupported: unsupportedStyle } = splitStyle(flat);
 
@@ -269,13 +298,14 @@ export function TextInput(props: TextInputProps) {
     warnUnsupported('style', unsupportedStyle);
   }
 
-  const isEditable = editable ?? (readOnly === undefined ? true : !readOnly);
   const shadowOffset = textStyle.textShadowOffset;
 
   return (
     <RNImeTextInputNativeComponent
       {...forwardable(rest as Record<string, unknown>)}
       {...mapAriaProps(props as Record<string, unknown>)}
+      {...pressHandlers}
+      hitSlop={hitSlop}
       ref={nativeRef}
       style={viewStyle}
       // `value` is what makes the field controlled; without it the revision

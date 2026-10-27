@@ -24,3 +24,28 @@ declare module 'react-native/Libraries/Components/TextInput/TextInputState' {
 
   export default TextInputState;
 }
+
+/**
+ * Turns press callbacks into responder handlers for a host view, the way React
+ * Native's own `TextInput` gets `onPress` without wrapping itself in a
+ * `Pressable`. Untyped for the same reason as `TextInputState`.
+ */
+declare module 'react-native/Libraries/Pressability/usePressability' {
+  import type { GestureResponderEvent, Insets } from 'react-native';
+
+  type PressabilityConfig = {
+    cancelable?: boolean | null;
+    hitSlop?: Insets | number | null;
+    onPress?: ((event: GestureResponderEvent) => void) | null;
+    onPressIn?: ((event: GestureResponderEvent) => void) | null;
+    onPressOut?: ((event: GestureResponderEvent) => void) | null;
+  };
+
+  type EventHandlers = {
+    onBlur: (event: unknown) => void;
+    onFocus: (event: unknown) => void;
+    [handler: string]: (...args: never[]) => unknown;
+  };
+
+  export default function usePressability(config: PressabilityConfig): EventHandlers;
+}

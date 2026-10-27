@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen, userEvent } from '@testing-library/react-native';
 import { createRef } from 'react';
 import TextInputState from 'react-native/Libraries/Components/TextInput/TextInputState';
 
@@ -548,9 +548,6 @@ describe('<TextInput> props reaching the native view', () => {
   // React Native implements these on iOS, but the native view here has no
   // matching prop, so forwarding them used to drop them without a word.
   it.each<[string, unknown]>([
-    ['onPress', () => {}],
-    ['onPressIn', () => {}],
-    ['onPressOut', () => {}],
     ['numberOfLines', 3],
     ['rows', 3],
     ['experimental_acceptDragAndDropTypes', ['public.plain-text']],
@@ -559,6 +556,63 @@ describe('<TextInput> props reaching the native view', () => {
 
     expect(nativeProps()[name]).toBeUndefined();
     expect(console.warn).toHaveBeenCalledWith(expect.stringContaining(`\`${name}\``));
+  });
+});
+
+describe('<TextInput> pressability', () => {
+  it('calls onPressIn, onPressOut and onPress for a tap', async () => {
+    const calls: string[] = [];
+    await render(
+      <TextInput
+        testID="input"
+        onPressIn={() => calls.push('in')}
+        onPressOut={() => calls.push('out')}
+        onPress={() => calls.push('press')}
+      />
+    );
+
+    await userEvent.press(input());
+
+    expect(calls).toEqual(['in', 'out', 'press']);
+    expect(console.warn).not.toHaveBeenCalled();
+  });
+
+  it('focuses the field when pressed, as React Native does', async () => {
+    await render(<TextInput testID="input" onPress={() => {}} />);
+
+    await userEvent.press(input());
+
+    expect(Commands.focus).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not focus a field that is not editable', async () => {
+    await render(<TextInput testID="input" editable={false} onPress={() => {}} />);
+
+    await userEvent.press(input());
+
+    expect(Commands.focus).not.toHaveBeenCalled();
+  });
+
+  // React Native's default is `rejectResponderTermination = true`: a parent
+  // such as a ScrollView cannot take the touch away from the field.
+  it('refuses to hand the responder over by default', async () => {
+    await render(<TextInput testID="input" />);
+
+    expect(nativeProps().onResponderTerminationRequest()).toBe(false);
+  });
+
+  it('hands the responder over when rejectResponderTermination is false', async () => {
+    await render(<TextInput testID="input" rejectResponderTermination={false} />);
+
+    expect(nativeProps().onResponderTerminationRequest()).toBe(true);
+    expect(console.warn).not.toHaveBeenCalled();
+  });
+
+  it('leaves focus and blur to the field, not to pressability', async () => {
+    await render(<TextInput testID="input" />);
+
+    expect(nativeProps().onFocus).toBeUndefined();
+    expect(nativeProps().onBlur).toBeUndefined();
   });
 });
 
