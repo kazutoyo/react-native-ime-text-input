@@ -1,5 +1,6 @@
 #import "RNImeTextInput.h"
 
+#import <CoreText/CoreText.h>
 #import <React/RCTConversions.h>
 #import <React/RCTTextInputUtils.h>
 #import <react/renderer/components/RNImeTextInputSpec/EventEmitters.h>
@@ -64,6 +65,104 @@ static NSLineBreakStrategy RNImeTextInputLineBreakStrategy(const std::string &va
   if (value == "hangul-word") return NSLineBreakStrategyHangulWordPriority;
   if (value == "push-out") return NSLineBreakStrategyPushOut;
   return NSLineBreakStrategyNone;
+}
+
+/**
+ SYNC: React Native's names for `NSLineBreakMode` (`conversions.h`'s
+ `LineBreakMode`). Word wrapping is UIKit's default, so it doubles as "unset".
+ */
+static NSLineBreakMode RNImeTextInputLineBreakMode(const std::string &value)
+{
+  if (value == "char") return NSLineBreakByCharWrapping;
+  if (value == "clip") return NSLineBreakByClipping;
+  if (value == "head") return NSLineBreakByTruncatingHead;
+  if (value == "middle") return NSLineBreakByTruncatingMiddle;
+  if (value == "tail") return NSLineBreakByTruncatingTail;
+  return NSLineBreakByWordWrapping;
+}
+
+/** Splits a space-separated prop into its tokens, in order. */
+static NSArray<NSString *> *RNImeTextInputTokens(const std::string &value)
+{
+  NSArray<NSString *> *parts = [RCTNSStringFromString(value) componentsSeparatedByString:@" "];
+  return [parts filteredArrayUsingPredicate:[NSPredicate predicateWithFormat:@"length > 0"]];
+}
+
+/**
+ SYNC: the variants React Native's iOS font code turns into font features
+ (`RCTFontUtils.mm`'s `RCTFontFeatures`). The ligature and contextual variants
+ are Android-only there too, so they are skipped like any unknown token.
+ */
+static NSArray<NSDictionary *> *RNImeTextInputFontFeatures(const std::string &value)
+{
+  static NSDictionary<NSString *, NSArray<NSNumber *> *> *features;
+  static dispatch_once_t onceToken;
+  dispatch_once(&onceToken, ^{
+    features = @{
+      @"small-caps" : @[ @(kLowerCaseType), @(kLowerCaseSmallCapsSelector) ],
+      @"oldstyle-nums" : @[ @(kNumberCaseType), @(kLowerCaseNumbersSelector) ],
+      @"lining-nums" : @[ @(kNumberCaseType), @(kUpperCaseNumbersSelector) ],
+      @"tabular-nums" : @[ @(kNumberSpacingType), @(kMonospacedNumbersSelector) ],
+      @"proportional-nums" : @[ @(kNumberSpacingType), @(kProportionalNumbersSelector) ],
+      @"stylistic-one" : @[ @(kStylisticAlternativesType), @(kStylisticAltOneOnSelector) ],
+      @"stylistic-two" : @[ @(kStylisticAlternativesType), @(kStylisticAltTwoOnSelector) ],
+      @"stylistic-three" : @[ @(kStylisticAlternativesType), @(kStylisticAltThreeOnSelector) ],
+      @"stylistic-four" : @[ @(kStylisticAlternativesType), @(kStylisticAltFourOnSelector) ],
+      @"stylistic-five" : @[ @(kStylisticAlternativesType), @(kStylisticAltFiveOnSelector) ],
+      @"stylistic-six" : @[ @(kStylisticAlternativesType), @(kStylisticAltSixOnSelector) ],
+      @"stylistic-seven" : @[ @(kStylisticAlternativesType), @(kStylisticAltSevenOnSelector) ],
+      @"stylistic-eight" : @[ @(kStylisticAlternativesType), @(kStylisticAltEightOnSelector) ],
+      @"stylistic-nine" : @[ @(kStylisticAlternativesType), @(kStylisticAltNineOnSelector) ],
+      @"stylistic-ten" : @[ @(kStylisticAlternativesType), @(kStylisticAltTenOnSelector) ],
+      @"stylistic-eleven" : @[ @(kStylisticAlternativesType), @(kStylisticAltElevenOnSelector) ],
+      @"stylistic-twelve" : @[ @(kStylisticAlternativesType), @(kStylisticAltTwelveOnSelector) ],
+      @"stylistic-thirteen" : @[ @(kStylisticAlternativesType), @(kStylisticAltThirteenOnSelector) ],
+      @"stylistic-fourteen" : @[ @(kStylisticAlternativesType), @(kStylisticAltFourteenOnSelector) ],
+      @"stylistic-fifteen" : @[ @(kStylisticAlternativesType), @(kStylisticAltFifteenOnSelector) ],
+      @"stylistic-sixteen" : @[ @(kStylisticAlternativesType), @(kStylisticAltSixteenOnSelector) ],
+      @"stylistic-seventeen" : @[ @(kStylisticAlternativesType), @(kStylisticAltSeventeenOnSelector) ],
+      @"stylistic-eighteen" : @[ @(kStylisticAlternativesType), @(kStylisticAltEighteenOnSelector) ],
+      @"stylistic-nineteen" : @[ @(kStylisticAlternativesType), @(kStylisticAltNineteenOnSelector) ],
+      @"stylistic-twenty" : @[ @(kStylisticAlternativesType), @(kStylisticAltTwentyOnSelector) ],
+    };
+  });
+
+  NSMutableArray<NSDictionary *> *result = [NSMutableArray array];
+  for (NSString *token in RNImeTextInputTokens(value)) {
+    NSArray<NSNumber *> *feature = features[token];
+    if (feature != nil) {
+      [result addObject:@{
+        UIFontFeatureTypeIdentifierKey : feature[0],
+        UIFontFeatureSelectorIdentifierKey : feature[1],
+      }];
+    }
+  }
+  return result.count > 0 ? result : nil;
+}
+
+/** SYNC: React Native's names (`RCTTextInputUtils.mm`'s `RCTUITextViewDataDetectorTypesFromStringVector`). */
+static UIDataDetectorTypes RNImeTextInputDataDetectorTypes(const std::string &value)
+{
+  static NSDictionary<NSString *, NSNumber *> *types;
+  static dispatch_once_t onceToken;
+  dispatch_once(&onceToken, ^{
+    types = @{
+      @"link" : @(UIDataDetectorTypeLink),
+      @"phoneNumber" : @(UIDataDetectorTypePhoneNumber),
+      @"address" : @(UIDataDetectorTypeAddress),
+      @"calendarEvent" : @(UIDataDetectorTypeCalendarEvent),
+      @"trackingNumber" : @(UIDataDetectorTypeShipmentTrackingNumber),
+      @"flightNumber" : @(UIDataDetectorTypeFlightNumber),
+      @"lookupSuggestion" : @(UIDataDetectorTypeLookupSuggestion),
+      @"all" : @(UIDataDetectorTypeAll),
+    };
+  });
+
+  UIDataDetectorTypes result = UIDataDetectorTypeNone;
+  for (NSString *token in RNImeTextInputTokens(value)) {
+    result |= (UIDataDetectorTypes)types[token].unsignedIntegerValue;
+  }
+  return result;
 }
 
 static UIKeyboardType RNImeTextInputKeyboardType(const std::string &value)
@@ -291,6 +390,13 @@ static UIKeyboardAppearance RNImeTextInputKeyboardAppearance(const std::string &
   BOOL _clearTextOnFocus;
   BOOL _caretHidden;
   BOOL _contextMenuHidden;
+  BOOL _disableKeyboardShortcuts;
+  /// The shortcut bar the current backing view came with, put back when
+  /// `disableKeyboardShortcuts` is turned off again.
+  NSArray<UIBarButtonItemGroup *> *_defaultLeadingBarButtonGroups;
+  NSArray<UIBarButtonItemGroup *> *_defaultTrailingBarButtonGroups;
+  /// `UITextField` has no data detectors, so this only reaches the text view.
+  UIDataDetectorTypes _dataDetectorTypes;
   BOOL _allowFontScaling;
   CGFloat _maxFontSizeMultiplier;
   BOOL _autoCorrect;
@@ -450,6 +556,8 @@ static UIKeyboardAppearance RNImeTextInputKeyboardAppearance(const std::string &
     _textField = field;
     [self insertSubview:field atIndex:0];
   }
+  _defaultLeadingBarButtonGroups = [self input].inputAssistantItem.leadingBarButtonGroups;
+  _defaultTrailingBarButtonGroups = [self input].inputAssistantItem.trailingBarButtonGroups;
 
   [self applyTextAttributes];
   [self applyPlaceholder];
@@ -460,6 +568,8 @@ static UIKeyboardAppearance RNImeTextInputKeyboardAppearance(const std::string &
   [self applyKeyboardTraits];
   [self applyTint];
   [self applyContextMenuHidden];
+  [self applyKeyboardShortcuts];
+  [self applyDataDetectorTypes];
   // Before the default toolbar: it steps aside when an id is present.
   [self applyAccessoryViewID];
   _textView.inputAccessoryView = previousAccessory;
@@ -878,6 +988,23 @@ static UIKeyboardAppearance RNImeTextInputKeyboardAppearance(const std::string &
 {
   _textView.contextMenuHidden = _contextMenuHidden;
   _textField.contextMenuHidden = _contextMenuHidden;
+}
+
+/**
+ SYNC: React Native empties both groups and restores the captured ones the same
+ way (`RCTUITextField.mm` / `RCTUITextView.mm`'s `setDisableKeyboardShortcuts:`).
+ */
+- (void)applyKeyboardShortcuts
+{
+  UITextInputAssistantItem *item = [self input].inputAssistantItem;
+  item.leadingBarButtonGroups = _disableKeyboardShortcuts ? @[] : _defaultLeadingBarButtonGroups;
+  item.trailingBarButtonGroups = _disableKeyboardShortcuts ? @[] : _defaultTrailingBarButtonGroups;
+}
+
+/** UIKit only detects in a text view that is not editable, as with React Native. */
+- (void)applyDataDetectorTypes
+{
+  _textView.dataDetectorTypes = _dataDetectorTypes;
 }
 
 - (void)applyAccessoryViewID
@@ -1336,6 +1463,8 @@ static UIKeyboardAppearance RNImeTextInputKeyboardAppearance(const std::string &
   attributes.shadowRadius = newProps.textShadowRadius;
   attributes.writingDirection = RNImeTextInputWritingDirection(newProps.writingDirection);
   attributes.lineBreakStrategy = RNImeTextInputLineBreakStrategy(newProps.lineBreakStrategyIOS);
+  attributes.lineBreakMode = RNImeTextInputLineBreakMode(newProps.lineBreakModeIOS);
+  attributes.fontFeatures = RNImeTextInputFontFeatures(newProps.fontVariant);
 
   if (![attributes isEqualToAttributes:_attributes]) {
     _attributes = attributes;
@@ -1380,6 +1509,16 @@ static UIKeyboardAppearance RNImeTextInputKeyboardAppearance(const std::string &
   if (old == nullptr || newProps.contextMenuHidden != old->contextMenuHidden) {
     _contextMenuHidden = newProps.contextMenuHidden;
     [self applyContextMenuHidden];
+  }
+
+  if (old == nullptr || newProps.disableKeyboardShortcuts != old->disableKeyboardShortcuts) {
+    _disableKeyboardShortcuts = newProps.disableKeyboardShortcuts;
+    [self applyKeyboardShortcuts];
+  }
+
+  if (old == nullptr || newProps.dataDetectorTypes != old->dataDetectorTypes) {
+    _dataDetectorTypes = RNImeTextInputDataDetectorTypes(newProps.dataDetectorTypes);
+    [self applyDataDetectorTypes];
   }
 
   if (old == nullptr || newProps.keyboardType != old->keyboardType ||

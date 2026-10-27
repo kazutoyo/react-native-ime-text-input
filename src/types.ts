@@ -1,5 +1,5 @@
 import type { Ref } from 'react';
-import type { TextInputProps as RNTextInputProps } from 'react-native';
+import type { HostInstance, TextInputProps as RNTextInputProps } from 'react-native';
 
 /**
  * Imperative handle: React Native's `TextInput` methods, plus one it has no
@@ -37,6 +37,10 @@ export type TextInputRef = {
    * the browser ends the composition itself when the value changes.
    */
   commitComposition: () => void;
+  /** The host view's own methods, with React Native's signatures. */
+  measure: HostInstance['measure'];
+  measureInWindow: HostInstance['measureInWindow'];
+  measureLayout: HostInstance['measureLayout'];
 };
 
 /**

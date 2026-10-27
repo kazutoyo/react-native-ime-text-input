@@ -1,3 +1,4 @@
+#import <CoreText/CoreText.h>
 #import <XCTest/XCTest.h>
 
 #import "RNImeTextInputAttributes.h"
@@ -142,6 +143,52 @@
   NSParagraphStyle *style = [_attributes attributes][NSParagraphStyleAttributeName];
 
   XCTAssertTrue(style == nil || style.lineBreakStrategy == NSLineBreakStrategyNone);
+}
+
+- (void)testTurnsTheLineBreakModeIntoAParagraphStyle
+{
+  _attributes.lineBreakMode = NSLineBreakByCharWrapping;
+
+  NSParagraphStyle *style = [_attributes attributes][NSParagraphStyleAttributeName];
+
+  XCTAssertEqual(style.lineBreakMode, NSLineBreakByCharWrapping);
+}
+
+- (void)testLeavesTheLineBreakModeAloneWhenUnset
+{
+  NSParagraphStyle *style = [_attributes attributes][NSParagraphStyleAttributeName];
+
+  XCTAssertTrue(style == nil || style.lineBreakMode == NSLineBreakByWordWrapping);
+}
+
+- (void)testAddsFontFeaturesToTheFont
+{
+  NSDictionary *tabular = @{
+    UIFontFeatureTypeIdentifierKey : @(kNumberSpacingType),
+    UIFontFeatureSelectorIdentifierKey : @(kMonospacedNumbersSelector),
+  };
+  _attributes.fontFeatures = @[ tabular ];
+
+  NSArray *settings = _attributes.font.fontDescriptor.fontAttributes[UIFontDescriptorFeatureSettingsAttribute];
+
+  XCTAssertEqualObjects(settings, @[ tabular ]);
+}
+
+- (void)testAddsNoFontFeaturesWhenUnset
+{
+  XCTAssertNil(_attributes.font.fontDescriptor.fontAttributes[UIFontDescriptorFeatureSettingsAttribute]);
+}
+
+- (void)testFontFeaturesTakePartInEquality
+{
+  RNImeTextInputAttributes *other = [_attributes copy];
+  other.fontFeatures = @[ @{
+    UIFontFeatureTypeIdentifierKey : @(kLowerCaseType),
+    UIFontFeatureSelectorIdentifierKey : @(kLowerCaseSmallCapsSelector),
+  } ];
+
+  XCTAssertFalse([_attributes isEqualToAttributes:other]);
+  XCTAssertTrue([other isEqualToAttributes:[other copy]]);
 }
 
 - (void)testTurnsLetterSpacingIntoKerning

@@ -16,10 +16,10 @@ describe('findUnsupportedProps', () => {
     const found = findUnsupportedProps({
       value: 'a',
       onScroll: () => {},
-      dataDetectorTypes: 'link',
+      textBreakStrategy: 'simple',
     });
 
-    expect(found.sort()).toEqual(['dataDetectorTypes', 'onScroll']);
+    expect(found.sort()).toEqual(['onScroll', 'textBreakStrategy']);
   });
 
   it('ignores unsupported props that are explicitly undefined', () => {

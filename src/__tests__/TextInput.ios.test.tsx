@@ -137,6 +137,12 @@ describe('<TextInput> events', () => {
   });
 });
 
+/** The native view the ref wrapper talks to — the target every command receives. */
+function nativeInstance(ref: React.RefObject<TextInputRef | null>): Record<string, jest.Mock> {
+  ref.current?.focus();
+  return (Commands.focus as jest.Mock).mock.calls[0][0];
+}
+
 describe('<TextInput> ref', () => {
   it('exposes the documented methods', async () => {
     const ref = createRef<TextInputRef>();
@@ -148,6 +154,9 @@ describe('<TextInput> ref', () => {
       'commitComposition',
       'focus',
       'isFocused',
+      'measure',
+      'measureInWindow',
+      'measureLayout',
       'setSelection',
     ]);
   });
@@ -164,6 +173,34 @@ describe('<TextInput> ref', () => {
     ref.current?.[method]();
 
     expect(command()).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(['measure', 'measureInWindow'] as const)(
+    '%s() is delegated to the native view',
+    async (method) => {
+      const ref = createRef<TextInputRef>();
+      await render(<TextInput testID="input" ref={ref} />);
+      const host = nativeInstance(ref);
+      host[method] = jest.fn();
+      const callback = jest.fn();
+
+      ref.current?.[method](callback);
+
+      expect(host[method]).toHaveBeenCalledWith(callback);
+    }
+  );
+
+  it('measureLayout() is delegated to the native view', async () => {
+    const ref = createRef<TextInputRef>();
+    await render(<TextInput testID="input" ref={ref} />);
+    const host = nativeInstance(ref);
+    host.measureLayout = jest.fn();
+    const onSuccess = jest.fn();
+    const onFail = jest.fn();
+
+    ref.current?.measureLayout(42, onSuccess, onFail);
+
+    expect(host.measureLayout).toHaveBeenCalledWith(42, onSuccess, onFail);
   });
 
   it('setSelection() dispatches the command with both offsets', async () => {
@@ -449,12 +486,79 @@ describe('<TextInput> props reaching the native view', () => {
     expect(nativeProps().lineBreakStrategyIOS).toBe('');
   });
 
+  it('sends lineBreakModeIOS down', async () => {
+    await render(<TextInput testID="input" lineBreakModeIOS="char" />);
+
+    expect(nativeProps().lineBreakModeIOS).toBe('char');
+    expect(console.warn).not.toHaveBeenCalled();
+  });
+
+  it('sends an empty lineBreakModeIOS when none is given', async () => {
+    await render(<TextInput testID="input" />);
+
+    expect(nativeProps().lineBreakModeIOS).toBe('');
+  });
+
+  it('sends disableKeyboardShortcuts down, off by default', async () => {
+    await render(<TextInput testID="input" disableKeyboardShortcuts />);
+    expect(nativeProps().disableKeyboardShortcuts).toBe(true);
+    expect(console.warn).not.toHaveBeenCalled();
+
+    await render(<TextInput testID="input" />);
+    expect(nativeProps().disableKeyboardShortcuts).toBe(false);
+  });
+
+  it.each<[string | string[], string]>([
+    ['link', 'link'],
+    [['link', 'phoneNumber'], 'link phoneNumber'],
+  ])('sends dataDetectorTypes %j down as %j', async (value, expected) => {
+    await render(<TextInput testID="input" multiline dataDetectorTypes={value as never} />);
+
+    expect(nativeProps().dataDetectorTypes).toBe(expected);
+    expect(console.warn).not.toHaveBeenCalled();
+  });
+
+  it('sends an empty dataDetectorTypes when none is given', async () => {
+    await render(<TextInput testID="input" />);
+
+    expect(nativeProps().dataDetectorTypes).toBe('');
+  });
+
+  it('sends fontVariant from the style down', async () => {
+    await render(<TextInput testID="input" style={{ fontVariant: ['tabular-nums'] }} />);
+
+    expect(nativeProps().fontVariant).toBe('tabular-nums');
+    expect(console.warn).not.toHaveBeenCalled();
+  });
+
+  it('sends an empty fontVariant when none is given', async () => {
+    await render(<TextInput testID="input" />);
+
+    expect(nativeProps().fontVariant).toBe('');
+  });
+
   it('drops the props that do nothing on iOS, and warns', async () => {
-    await render(<TextInput testID="input" onScroll={() => {}} dataDetectorTypes="link" />);
+    await render(<TextInput testID="input" onScroll={() => {}} underlineColorAndroid="red" />);
 
     expect(nativeProps().onScroll).toBeUndefined();
-    expect(nativeProps().dataDetectorTypes).toBeUndefined();
+    expect(nativeProps().underlineColorAndroid).toBeUndefined();
     expect(console.warn).toHaveBeenCalledTimes(2);
+  });
+
+  // React Native implements these on iOS, but the native view here has no
+  // matching prop, so forwarding them used to drop them without a word.
+  it.each<[string, unknown]>([
+    ['onPress', () => {}],
+    ['onPressIn', () => {}],
+    ['onPressOut', () => {}],
+    ['numberOfLines', 3],
+    ['rows', 3],
+    ['experimental_acceptDragAndDropTypes', ['public.plain-text']],
+  ])('drops `%s` instead of forwarding it silently, and warns', async (name, value) => {
+    await render(<TextInput testID="input" {...({ [name]: value } as object)} />);
+
+    expect(nativeProps()[name]).toBeUndefined();
+    expect(console.warn).toHaveBeenCalledWith(expect.stringContaining(`\`${name}\``));
   });
 });
 

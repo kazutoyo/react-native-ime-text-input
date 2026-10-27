@@ -140,6 +140,9 @@ export function TextInput(props: TextInputProps) {
     readOnly,
     showSoftInputOnFocus,
     lineBreakStrategyIOS,
+    lineBreakModeIOS,
+    disableKeyboardShortcuts,
+    dataDetectorTypes,
     placeholder,
     placeholderTextColor,
     multiline,
@@ -220,6 +223,10 @@ export function TextInput(props: TextInputProps) {
       commitComposition: () => {
         if (nativeRef.current) Commands.commitComposition(nativeRef.current);
       },
+      measure: (callback) => nativeRef.current?.measure(callback),
+      measureInWindow: (callback) => nativeRef.current?.measureInWindow(callback),
+      measureLayout: (relativeTo, onSuccess, onFail) =>
+        nativeRef.current?.measureLayout(relativeTo, onSuccess, onFail),
     }),
     []
   );
@@ -285,6 +292,11 @@ export function TextInput(props: TextInputProps) {
       editable={isEditable}
       showSoftInputOnFocus={showSoftInputOnFocus ?? true}
       lineBreakStrategyIOS={str(lineBreakStrategyIOS)}
+      lineBreakModeIOS={str(lineBreakModeIOS)}
+      disableKeyboardShortcuts={disableKeyboardShortcuts ?? false}
+      dataDetectorTypes={
+        typeof dataDetectorTypes === 'string' ? dataDetectorTypes : (dataDetectorTypes?.join(' ') ?? '')
+      }
       autoFocus={autoFocus ?? false}
       selectTextOnFocus={selectTextOnFocus ?? false}
       clearTextOnFocus={clearTextOnFocus ?? false}
@@ -335,6 +347,7 @@ export function TextInput(props: TextInputProps) {
       textShadowOffsetHeight={shadowOffset?.height ?? 0}
       textShadowRadius={textStyle.textShadowRadius ?? 0}
       writingDirection={str(textStyle.writingDirection)}
+      fontVariant={str(textStyle.fontVariant)}
       testID={testID}
       onChangeText={(event) => {
         const next = event.nativeEvent.text;

@@ -104,6 +104,17 @@ export interface NativeProps extends ViewProps {
    * `NSLineBreakStrategyNone` — the same default React Native uses.
    */
   lineBreakStrategyIOS?: string;
+  /**
+   * `NSLineBreakMode`, by React Native's names ('wordWrapping', 'char', 'clip',
+   * 'head', 'middle', 'tail'). Empty means "not set", which leaves UIKit's
+   * word wrapping.
+   */
+  lineBreakModeIOS?: string;
+  /**
+   * Space-separated `fontVariant` tokens. Empty means none. Only the ones
+   * React Native's iOS font code understands have an effect.
+   */
+  fontVariant?: string;
 
   // -- Behaviour --
 
@@ -123,8 +134,17 @@ export interface NativeProps extends ViewProps {
   /** Suppresses the cut/copy/paste edit menu, as React Native core does. */
   contextMenuHidden?: CodegenTypes.WithDefault<boolean, false>;
   selectionColor?: ColorValue;
+  /**
+   * Space-separated `UIDataDetectorTypes` names. Multiline only, as in React
+   * Native: `UITextField` has no data detectors. UIKit only detects in a text
+   * view that is not editable.
+   */
+  dataDetectorTypes?: string;
 
   // -- Keyboard --
+
+  /** Empties the shortcut bar above the keyboard (undo/redo, paste). */
+  disableKeyboardShortcuts?: CodegenTypes.WithDefault<boolean, false>;
 
   keyboardType?: string;
   returnKeyType?: string;

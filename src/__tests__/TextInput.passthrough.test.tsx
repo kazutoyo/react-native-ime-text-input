@@ -72,6 +72,9 @@ describe('<TextInput> on Android and web', () => {
         'commitComposition',
         'focus',
         'isFocused',
+        'measure',
+        'measureInWindow',
+        'measureLayout',
         'setSelection',
       ]);
     });

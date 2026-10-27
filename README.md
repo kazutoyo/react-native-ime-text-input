@@ -66,7 +66,7 @@ A chat composer needs no height state, no `onContentSizeChange`, and no library-
 
 **Props** — everything React Native's `TextInput` accepts. The type is React Native's own apart from `ref`, so replacing the import never produces a type error. A few props do nothing on iOS; see [Differences](#differences-from-react-natives-textinput).
 
-**Style** — a normal `TextStyle`. Box and layout properties are drawn by the native view, typography is forwarded to the text view — including the ones that become `NSAttributedString` attributes: `fontSize`, `fontWeight` (numeric and named, `'semibold'` and friends), `fontFamily`, `fontStyle`, `color`, `textAlign`, `lineHeight`, `letterSpacing`, `textDecorationLine` / `Color` / `Style`, `textShadowColor` / `Offset` / `Radius`, `writingDirection`.
+**Style** — a normal `TextStyle`. Box and layout properties are drawn by the native view, typography is forwarded to the text view — including the ones that become `NSAttributedString` attributes: `fontSize`, `fontWeight` (numeric and named, `'semibold'` and friends), `fontFamily`, `fontStyle`, `color`, `textAlign`, `lineHeight`, `letterSpacing`, `textDecorationLine` / `Color` / `Style`, `textShadowColor` / `Offset` / `Radius`, `writingDirection`, `fontVariant`.
 
 **Ref**
 
@@ -77,7 +77,10 @@ type TextInputRef = {
   clear: () => void;
   isFocused: () => boolean;
   setSelection: (start: number, end: number) => void;
-  commitComposition: () => void; // iOS only; a no-op elsewhere
+  commitComposition: () => void; // iOS and Android; a no-op on web
+  measure: HostInstance['measure'];
+  measureInWindow: HostInstance['measureInWindow'];
+  measureLayout: HostInstance['measureLayout'];
 };
 ```
 
@@ -120,15 +123,15 @@ It behaves like React Native's `TextInput` for the most part, but a few props an
 
 Passing one on iOS ignores the value and warns once per prop name in `__DEV__`.
 
-**Props.** `blurOnSubmit` (use `submitBehavior`), `dataDetectorTypes`, `disableFullscreenUI`, `importantForAutofill`, `inlineImageLeft`, `inlineImagePadding`, `onScroll`, `rejectResponderTermination`, `returnKeyLabel`, `textBreakStrategy`, `underlineColorAndroid`
+**Props.** `blurOnSubmit` (use `submitBehavior`), `disableFullscreenUI`, `experimental_acceptDragAndDropTypes`, `importantForAutofill`, `inlineImageLeft`, `inlineImagePadding`, `numberOfLines`, `onPress`, `onPressIn`, `onPressOut`, `onScroll`, `rejectResponderTermination`, `returnKeyLabel`, `rows`, `textBreakStrategy`, `underlineColorAndroid`
 
 Some of that list is Android-only or deprecated, so React Native's own iOS implementation ignores it too and nothing is lost relative to it: `blurOnSubmit`, `disableFullscreenUI`, `importantForAutofill`, `inlineImageLeft`, `inlineImagePadding`, `returnKeyLabel`, `textBreakStrategy`, `underlineColorAndroid`.
 
-The rest React Native core does implement on iOS, and they are simply not implemented here yet: `dataDetectorTypes`, `onScroll`, `rejectResponderTermination`.
+The rest React Native core does implement on iOS, and they are simply not implemented here yet: `experimental_acceptDragAndDropTypes`, `numberOfLines` / `rows`, `onPress` / `onPressIn` / `onPressOut`, `onScroll`, `rejectResponderTermination`.
 
-**Style properties.** `textTransform`, `fontVariant`, `verticalAlign`, `textAlignVertical`, `includeFontPadding`
+**Style properties.** `textTransform`, `verticalAlign`, `textAlignVertical`, `includeFontPadding`
 
-`setNativeProps()` and the `measure*` family are absent from `TextInputRef` on every platform, so those are type errors — the ref type is the one thing that is ours rather than React Native's.
+`setNativeProps()` is absent from `TextInputRef` on every platform, so it is a type error — the ref type is the one thing that is ours rather than React Native's.
 
 ### Other differences
 

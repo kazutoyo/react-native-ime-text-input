@@ -31,6 +31,10 @@ export function TextInput({ ref, ...props }: TextInputProps) {
       // Android keeps the composition across a value update, so it is ended
       // natively; the browser ends it itself (see commitComposition.*.ts).
       commitComposition: () => commitCompositionOn(innerRef.current),
+      measure: (callback) => innerRef.current?.measure(callback),
+      measureInWindow: (callback) => innerRef.current?.measureInWindow(callback),
+      measureLayout: (relativeTo, onSuccess, onFail) =>
+        innerRef.current?.measureLayout(relativeTo, onSuccess, onFail),
     }),
     []
   );
