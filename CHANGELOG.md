@@ -14,6 +14,9 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   wrapper view is added. As in React Native, a press also focuses an editable
   field, and by default a parent such as a `ScrollView` cannot take the touch
   away from it.
+- `onScroll` on iOS, for `multiline` fields, with React Native's own payload
+  (`contentOffset`, `contentInset`, `contentSize`, `layoutMeasurement`,
+  `zoomScale`, `responderIgnoreScroll`).
 
 ### Added
 

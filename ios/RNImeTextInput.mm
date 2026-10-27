@@ -1369,6 +1369,36 @@ static UIKeyboardAppearance RNImeTextInputKeyboardAppearance(const std::string &
   return YES;
 }
 
+#pragma mark - UIScrollViewDelegate
+
+/**
+ Only the `UITextView` ever calls this — a `UITextField` is not a scroll view.
+
+ SYNC: the metrics React Native's `RCTTextInputComponentView` reports from the
+ same callback, including `responderIgnoreScroll` for scrolls the user did not
+ drive (layout, programmatic), which the responder system ignores.
+ */
+- (void)scrollViewDidScroll:(UIScrollView *)scrollView
+{
+  if (_eventEmitter == nullptr) {
+    return;
+  }
+  [self emitter].onScroll({
+      .contentOffset = {.x = scrollView.contentOffset.x, .y = scrollView.contentOffset.y},
+      .contentInset =
+          {
+              .top = scrollView.contentInset.top,
+              .left = scrollView.contentInset.left,
+              .bottom = scrollView.contentInset.bottom,
+              .right = scrollView.contentInset.right,
+          },
+      .contentSize = {.width = scrollView.contentSize.width, .height = scrollView.contentSize.height},
+      .layoutMeasurement = {.width = scrollView.bounds.size.width, .height = scrollView.bounds.size.height},
+      .zoomScale = scrollView.zoomScale != 0 ? scrollView.zoomScale : 1,
+      .responderIgnoreScroll = !(scrollView.isDragging || scrollView.isDecelerating),
+  });
+}
+
 #pragma mark - UITextFieldDelegate
 
 - (void)textFieldDidChange

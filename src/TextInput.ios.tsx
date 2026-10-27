@@ -136,6 +136,7 @@ export function TextInput(props: TextInputProps) {
     onSelectionChange,
     onContentSizeChange,
     onKeyPress,
+    onScroll,
     selection,
     editable,
     readOnly,
@@ -379,6 +380,9 @@ export function TextInput(props: TextInputProps) {
       writingDirection={str(textStyle.writingDirection)}
       fontVariant={str(textStyle.fontVariant)}
       testID={testID}
+      // React Native's own payload, so the handler goes through unwrapped; the
+      // cast only bridges its `unknown` return type to codegen's `void`.
+      onScroll={onScroll as never}
       onChangeText={(event) => {
         const next = event.nativeEvent.text;
         lastEventCountRef.current = event.nativeEvent.eventCount;

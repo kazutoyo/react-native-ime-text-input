@@ -123,11 +123,11 @@ It behaves like React Native's `TextInput` for the most part, but a few props an
 
 Passing one on iOS ignores the value and warns once per prop name in `__DEV__`.
 
-**Props.** `blurOnSubmit` (use `submitBehavior`), `disableFullscreenUI`, `experimental_acceptDragAndDropTypes`, `importantForAutofill`, `inlineImageLeft`, `inlineImagePadding`, `numberOfLines`, `onScroll`, `returnKeyLabel`, `rows`, `textBreakStrategy`, `underlineColorAndroid`
+**Props.** `blurOnSubmit` (use `submitBehavior`), `disableFullscreenUI`, `experimental_acceptDragAndDropTypes`, `importantForAutofill`, `inlineImageLeft`, `inlineImagePadding`, `numberOfLines`, `returnKeyLabel`, `rows`, `textBreakStrategy`, `underlineColorAndroid`
 
 Some of that list is Android-only or deprecated, so React Native's own iOS implementation ignores it too and nothing is lost relative to it: `blurOnSubmit`, `disableFullscreenUI`, `importantForAutofill`, `inlineImageLeft`, `inlineImagePadding`, `returnKeyLabel`, `textBreakStrategy`, `underlineColorAndroid`.
 
-The rest React Native core does implement on iOS, and they are simply not implemented here yet: `experimental_acceptDragAndDropTypes`, `numberOfLines` / `rows`, `onScroll`.
+The rest React Native core does implement on iOS, and they are simply not implemented here yet: `experimental_acceptDragAndDropTypes`, `numberOfLines` / `rows`.
 
 **Style properties.** `textTransform`, `verticalAlign`, `textAlignVertical`, `includeFontPadding`
 

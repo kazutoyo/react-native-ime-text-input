@@ -115,6 +115,25 @@ describe('<TextInput> events', () => {
     expect(onKeyPress.mock.calls[0][0].nativeEvent).toEqual({ key: 'Backspace' });
   });
 
+  it('calls onScroll with the scroll metrics React Native reports', async () => {
+    const onScroll = jest.fn();
+    await render(<TextInput testID="input" multiline onScroll={onScroll} />);
+    const nativeEvent = {
+      contentOffset: { x: 0, y: 40 },
+      contentInset: { top: 0, left: 0, bottom: 0, right: 0 },
+      contentSize: { width: 320, height: 200 },
+      layoutMeasurement: { width: 320, height: 110 },
+      zoomScale: 1,
+      responderIgnoreScroll: false,
+    };
+
+    await fireEvent(input(), 'scroll', { nativeEvent });
+
+    expect(onScroll).toHaveBeenCalledTimes(1);
+    expect(onScroll.mock.calls[0][0].nativeEvent).toEqual(nativeEvent);
+    expect(console.warn).not.toHaveBeenCalled();
+  });
+
   it('calls onContentSizeChange with the measured size', async () => {
     const onContentSizeChange = jest.fn();
     await render(<TextInput testID="input" onContentSizeChange={onContentSizeChange} />);
@@ -538,9 +557,9 @@ describe('<TextInput> props reaching the native view', () => {
   });
 
   it('drops the props that do nothing on iOS, and warns', async () => {
-    await render(<TextInput testID="input" onScroll={() => {}} underlineColorAndroid="red" />);
+    await render(<TextInput testID="input" numberOfLines={2} underlineColorAndroid="red" />);
 
-    expect(nativeProps().onScroll).toBeUndefined();
+    expect(nativeProps().numberOfLines).toBeUndefined();
     expect(nativeProps().underlineColorAndroid).toBeUndefined();
     expect(console.warn).toHaveBeenCalledTimes(2);
   });

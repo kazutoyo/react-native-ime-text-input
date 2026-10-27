@@ -129,11 +129,11 @@ Android でも必要です。Android の React Native の `TextInput` は、テ�
 
 これらを iOS で指定したときは値を無視し、`__DEV__` で prop 名ごとに1回だけ警告します。
 
-**props。** `blurOnSubmit`（`submitBehavior` を使ってください）/ `disableFullscreenUI` / `experimental_acceptDragAndDropTypes` / `importantForAutofill` / `inlineImageLeft` / `inlineImagePadding` / `numberOfLines` / `onScroll` / `returnKeyLabel` / `rows` / `textBreakStrategy` / `underlineColorAndroid`
+**props。** `blurOnSubmit`（`submitBehavior` を使ってください）/ `disableFullscreenUI` / `experimental_acceptDragAndDropTypes` / `importantForAutofill` / `inlineImageLeft` / `inlineImagePadding` / `numberOfLines` / `returnKeyLabel` / `rows` / `textBreakStrategy` / `underlineColorAndroid`
 
 このうち `blurOnSubmit` / `disableFullscreenUI` / `importantForAutofill` / `inlineImageLeft` / `inlineImagePadding` / `returnKeyLabel` / `textBreakStrategy` / `underlineColorAndroid` は Android 専用か非推奨で、React Native 自身の iOS 実装でも無視されるため、React Native と比べて失われるものはありません。
 
-残りの `experimental_acceptDragAndDropTypes` / `numberOfLines` / `rows` / `onScroll` は React Native 本体が iOS で実装しており、本ライブラリでまだ実装していないだけです。
+残りの `experimental_acceptDragAndDropTypes` / `numberOfLines` / `rows` は React Native 本体が iOS で実装しており、本ライブラリでまだ実装していないだけです。
 
 **スタイルプロパティ。** `textTransform` / `verticalAlign` / `textAlignVertical` / `includeFontPadding`
 

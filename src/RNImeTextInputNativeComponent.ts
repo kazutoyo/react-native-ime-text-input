@@ -188,6 +188,26 @@ export interface NativeProps extends ViewProps {
   onSelectionChange?: CodegenTypes.DirectEventHandler<Readonly<{ start: CodegenTypes.Int32; end: CodegenTypes.Int32 }>>;
   onContentSizeChange?: CodegenTypes.DirectEventHandler<Readonly<{ width: CodegenTypes.Double; height: CodegenTypes.Double }>>;
   onInputKeyPress?: CodegenTypes.DirectEventHandler<Readonly<{ key: string }>>;
+  /**
+   * Multiline only — a `UITextField` does not scroll. SYNC: the payload is
+   * React Native's own (`TextInputEventEmitter.cpp`'s
+   * `textInputMetricsScrollPayload`), so the handler is passed through as is.
+   */
+  onScroll?: CodegenTypes.DirectEventHandler<
+    Readonly<{
+      contentOffset: Readonly<{ x: CodegenTypes.Double; y: CodegenTypes.Double }>;
+      contentInset: Readonly<{
+        top: CodegenTypes.Double;
+        left: CodegenTypes.Double;
+        bottom: CodegenTypes.Double;
+        right: CodegenTypes.Double;
+      }>;
+      contentSize: Readonly<{ width: CodegenTypes.Double; height: CodegenTypes.Double }>;
+      layoutMeasurement: Readonly<{ width: CodegenTypes.Double; height: CodegenTypes.Double }>;
+      zoomScale: CodegenTypes.Double;
+      responderIgnoreScroll: boolean;
+    }>
+  >;
 }
 
 export type RNImeTextInputViewType = HostComponent<NativeProps>;
