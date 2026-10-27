@@ -23,8 +23,7 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Fixed
 
-- `onPress`, `onPressIn`, `onPressOut`, `numberOfLines`, `rows`,
-  `lineBreakModeIOS`, `disableKeyboardShortcuts` and
+- `onPress`, `onPressIn`, `onPressOut`, `numberOfLines`, `rows` and
   `experimental_acceptDragAndDropTypes` were forwarded to the native view on
   iOS, which has no such props, so they did nothing without a word. They are
   now dropped with the same one-time `__DEV__` warning as the other
