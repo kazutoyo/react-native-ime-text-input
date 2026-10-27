@@ -77,7 +77,7 @@ type TextInputRef = {
   clear: () => void;
   isFocused: () => boolean;
   setSelection: (start: number, end: number) => void;
-  commitComposition: () => void; // iOS only; a no-op elsewhere
+  commitComposition: () => void; // iOS and Android; a no-op on web
   measure: HostInstance['measure'];
   measureInWindow: HostInstance['measureInWindow'];
   measureLayout: HostInstance['measureLayout'];
