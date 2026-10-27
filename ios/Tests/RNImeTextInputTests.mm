@@ -1,3 +1,4 @@
+#import <CoreText/CoreText.h>
 #import <XCTest/XCTest.h>
 
 #import <react/renderer/components/RNImeTextInputSpec/Props.h>
@@ -56,6 +57,11 @@ struct TestProps {
   std::string textDecorationLine;
   std::string smartInsertDelete;
   std::string lineBreakStrategyIOS;
+  std::string lineBreakModeIOS;
+  std::string fontVariant;
+  std::string dataDetectorTypes;
+  bool disableKeyboardShortcuts = false;
+  bool editable = true;
   bool showSoftInputOnFocus = true;
   std::string passwordRules;
   std::string clearButtonMode;
@@ -116,6 +122,11 @@ struct TestProps {
   next->textDecorationLine = _values.textDecorationLine;
   next->smartInsertDelete = _values.smartInsertDelete;
   next->lineBreakStrategyIOS = _values.lineBreakStrategyIOS;
+  next->lineBreakModeIOS = _values.lineBreakModeIOS;
+  next->fontVariant = _values.fontVariant;
+  next->dataDetectorTypes = _values.dataDetectorTypes;
+  next->disableKeyboardShortcuts = _values.disableKeyboardShortcuts;
+  next->editable = _values.editable;
   next->showSoftInputOnFocus = _values.showSoftInputOnFocus;
   next->passwordRules = _values.passwordRules;
   next->clearButtonMode = _values.clearButtonMode;
@@ -524,6 +535,121 @@ struct TestProps {
       ((UITextView *)[_view input]).typingAttributes[NSParagraphStyleAttributeName];
 
   XCTAssertTrue(style == nil || style.lineBreakStrategy == NSLineBreakStrategyNone);
+}
+
+- (void)testTheLineBreakModeReachesTheTypingAttributes
+{
+  [self applyProps:^(TestProps &props) {
+    props.lineBreakModeIOS = "char";
+  }];
+
+  NSParagraphStyle *style =
+      ((UITextView *)[_view input]).typingAttributes[NSParagraphStyleAttributeName];
+
+  XCTAssertEqual(style.lineBreakMode, NSLineBreakByCharWrapping);
+}
+
+- (void)testFontVariantBecomesFontFeatures
+{
+  [self applyProps:^(TestProps &props) {
+    props.fontVariant = "small-caps tabular-nums no-such-variant";
+  }];
+
+  UIFont *font = ((UITextView *)[_view input]).typingAttributes[NSFontAttributeName];
+  NSArray *settings = font.fontDescriptor.fontAttributes[UIFontDescriptorFeatureSettingsAttribute];
+
+  NSArray *expected = @[
+    @{
+      UIFontFeatureTypeIdentifierKey : @(kLowerCaseType),
+      UIFontFeatureSelectorIdentifierKey : @(kLowerCaseSmallCapsSelector),
+    },
+    @{
+      UIFontFeatureTypeIdentifierKey : @(kNumberSpacingType),
+      UIFontFeatureSelectorIdentifierKey : @(kMonospacedNumbersSelector),
+    },
+  ];
+  // CoreText orders the settings by feature type, not by how they were given.
+  XCTAssertEqualObjects([NSSet setWithArray:settings], [NSSet setWithArray:expected]);
+}
+
+- (void)testAnUnsetFontVariantAddsNoFontFeatures
+{
+  UIFont *font = ((UITextView *)[_view input]).typingAttributes[NSFontAttributeName];
+
+  XCTAssertNil(font.fontDescriptor.fontAttributes[UIFontDescriptorFeatureSettingsAttribute]);
+}
+
+#pragma mark - Data detectors
+
+- (void)testDataDetectorTypesReachTheTextView
+{
+  [self applyProps:^(TestProps &props) {
+    props.editable = false;
+    props.dataDetectorTypes = "link phoneNumber";
+  }];
+
+  XCTAssertEqual(((UITextView *)[_view input]).dataDetectorTypes,
+                 UIDataDetectorTypeLink | UIDataDetectorTypePhoneNumber);
+}
+
+- (void)testAnUnsetDataDetectorTypesDetectsNothing
+{
+  XCTAssertEqual(((UITextView *)[_view input]).dataDetectorTypes, UIDataDetectorTypeNone);
+}
+
+- (void)testDataDetectorTypesSurviveTheSwitchToMultiline
+{
+  [self applyProps:^(TestProps &props) {
+    props.multiline = false;
+    props.dataDetectorTypes = "all";
+  }];
+  [self applyProps:^(TestProps &props) {
+    props.multiline = true;
+  }];
+
+  XCTAssertEqual(((UITextView *)[_view input]).dataDetectorTypes, UIDataDetectorTypeAll);
+}
+
+#pragma mark - Keyboard shortcuts
+
+- (void)testDisableKeyboardShortcutsEmptiesTheShortcutBar
+{
+  [self applyProps:^(TestProps &props) {
+    props.disableKeyboardShortcuts = true;
+  }];
+
+  UITextInputAssistantItem *item = [_view input].inputAssistantItem;
+  XCTAssertEqual(item.leadingBarButtonGroups.count, 0u);
+  XCTAssertEqual(item.trailingBarButtonGroups.count, 0u);
+}
+
+- (void)testReenablingKeyboardShortcutsRestoresTheShortcutBar
+{
+  UITextInputAssistantItem *item = [_view input].inputAssistantItem;
+  NSArray *leading = item.leadingBarButtonGroups;
+  NSArray *trailing = item.trailingBarButtonGroups;
+
+  [self applyProps:^(TestProps &props) {
+    props.disableKeyboardShortcuts = true;
+  }];
+  [self applyProps:^(TestProps &props) {
+    props.disableKeyboardShortcuts = false;
+  }];
+
+  XCTAssertEqualObjects(item.leadingBarButtonGroups, leading);
+  XCTAssertEqualObjects(item.trailingBarButtonGroups, trailing);
+}
+
+- (void)testDisabledKeyboardShortcutsSurviveTheSwitchToSingleLine
+{
+  [self applyProps:^(TestProps &props) {
+    props.disableKeyboardShortcuts = true;
+  }];
+  UITextField *field = [self textFieldWith:^(TestProps &props) {
+  }];
+
+  XCTAssertEqual(field.inputAssistantItem.leadingBarButtonGroups.count, 0u);
+  XCTAssertEqual(field.inputAssistantItem.trailingBarButtonGroups.count, 0u);
 }
 
 #pragma mark - Input traits

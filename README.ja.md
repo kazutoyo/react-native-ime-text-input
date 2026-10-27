@@ -67,7 +67,7 @@ const [text, setText] = useState('');
 
 **props** — React Native の `TextInput` が受け取るもの一式です。型は ref を除いて React Native のものそのままなので、import を差し替えても型エラーは出ません。一部の prop は iOS では効きません（[差分](#標準の-textinput-との差分)を参照）。
 
-**style** — 普通の `TextStyle` です。ボックス系・レイアウト系はネイティブビューが描画し、タイポグラフィはテキストビューへ渡します。`NSAttributedString` の属性になるものにも対応しています：`fontSize` / `fontWeight`（数値と `'semibold'` などの名前付きの両方）/ `fontFamily` / `fontStyle` / `color` / `textAlign` / `lineHeight` / `letterSpacing` / `textDecorationLine`・`Color`・`Style` / `textShadowColor`・`Offset`・`Radius` / `writingDirection`
+**style** — 普通の `TextStyle` です。ボックス系・レイアウト系はネイティブビューが描画し、タイポグラフィはテキストビューへ渡します。`NSAttributedString` の属性になるものにも対応しています：`fontSize` / `fontWeight`（数値と `'semibold'` などの名前付きの両方）/ `fontFamily` / `fontStyle` / `color` / `textAlign` / `lineHeight` / `letterSpacing` / `textDecorationLine`・`Color`・`Style` / `textShadowColor`・`Offset`・`Radius` / `writingDirection` / `fontVariant`
 
 **ref**
 
@@ -79,6 +79,9 @@ type TextInputRef = {
   isFocused: () => boolean;
   setSelection: (start: number, end: number) => void;
   commitComposition: () => void; // iOS のみ。他プラットフォームでは何もしない
+  measure: HostInstance['measure'];
+  measureInWindow: HostInstance['measureInWindow'];
+  measureLayout: HostInstance['measureLayout'];
 };
 ```
 
@@ -126,15 +129,15 @@ Android でも必要です。Android の React Native の `TextInput` は、テ�
 
 これらを iOS で指定したときは値を無視し、`__DEV__` で prop 名ごとに1回だけ警告します。
 
-**props。** `blurOnSubmit`（`submitBehavior` を使ってください）/ `dataDetectorTypes` / `disableFullscreenUI` / `importantForAutofill` / `inlineImageLeft` / `inlineImagePadding` / `onScroll` / `rejectResponderTermination` / `returnKeyLabel` / `textBreakStrategy` / `underlineColorAndroid`
+**props。** `blurOnSubmit`（`submitBehavior` を使ってください）/ `disableFullscreenUI` / `experimental_acceptDragAndDropTypes` / `importantForAutofill` / `inlineImageLeft` / `inlineImagePadding` / `numberOfLines` / `onPress` / `onPressIn` / `onPressOut` / `onScroll` / `rejectResponderTermination` / `returnKeyLabel` / `rows` / `textBreakStrategy` / `underlineColorAndroid`
 
 このうち `blurOnSubmit` / `disableFullscreenUI` / `importantForAutofill` / `inlineImageLeft` / `inlineImagePadding` / `returnKeyLabel` / `textBreakStrategy` / `underlineColorAndroid` は Android 専用か非推奨で、React Native 自身の iOS 実装でも無視されるため、React Native と比べて失われるものはありません。
 
-残りの `dataDetectorTypes` / `onScroll` / `rejectResponderTermination` は React Native 本体が iOS で実装しており、本ライブラリでまだ実装していないだけです。
+残りの `experimental_acceptDragAndDropTypes` / `numberOfLines` / `rows` / `onPress` / `onPressIn` / `onPressOut` / `onScroll` / `rejectResponderTermination` は React Native 本体が iOS で実装しており、本ライブラリでまだ実装していないだけです。
 
-**スタイルプロパティ。** `textTransform` / `fontVariant` / `verticalAlign` / `textAlignVertical` / `includeFontPadding`
+**スタイルプロパティ。** `textTransform` / `verticalAlign` / `textAlignVertical` / `includeFontPadding`
 
-`setNativeProps()` と `measure*` 系は `TextInputRef` に用意していないため、どのプラットフォームでも型エラーになります。ref の型だけは React Native のものではなく本ライブラリ独自のものです。
+`setNativeProps()` は `TextInputRef` に用意していないため、どのプラットフォームでも型エラーになります。ref の型だけは React Native のものではなく本ライブラリ独自のものです。
 
 ### その他の差分
 

@@ -46,6 +46,13 @@
  `NSLineBreakStrategyNone` means unset, which is also UIKit's default.
  */
 @property (nonatomic, assign) NSLineBreakStrategy lineBreakStrategy;
+/** `NSLineBreakByWordWrapping` means unset, which is also UIKit's default. */
+@property (nonatomic, assign) NSLineBreakMode lineBreakMode;
+/**
+ `UIFontDescriptorFeatureSettingsAttribute` entries, from `fontVariant`.
+ nil or empty means none.
+ */
+@property (nonatomic, copy, nullable) NSArray<NSDictionary *> *fontFeatures;
 
 /** The resolved font, including the italic trait. */
 @property (nonatomic, readonly, nonnull) UIFont *font;

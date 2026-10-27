@@ -143,6 +143,21 @@ describe('splitStyle', () => {
     });
   });
 
+  describe('fontVariant', () => {
+    it('joins the array form into the space-separated string the native side parses', () => {
+      const result = splitStyle({ fontVariant: ['small-caps', 'tabular-nums'] });
+
+      expect(result.text.fontVariant).toBe('small-caps tabular-nums');
+      expect(result.unsupported).toEqual([]);
+    });
+
+    it('accepts the string form React Native also takes', () => {
+      const result = splitStyle({ fontVariant: 'small-caps  tabular-nums' as never });
+
+      expect(result.text.fontVariant).toBe('small-caps tabular-nums');
+    });
+  });
+
   describe('undefined values', () => {
     it('ignores explicitly undefined properties', () => {
       expect(splitStyle({ color: undefined, margin: undefined, textTransform: undefined })).toEqual({

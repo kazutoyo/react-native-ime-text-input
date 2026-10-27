@@ -31,6 +31,8 @@ export type TextOnlyStyle = {
   textShadowOffset?: { width: number; height: number };
   textShadowRadius?: number;
   writingDirection?: string;
+  /** Space-separated, the string form React Native also accepts. */
+  fontVariant?: string;
 };
 
 export type SplitStyle = {
@@ -71,7 +73,6 @@ const TEXT_KEYS = new Set<string>([
 /** Text properties UIKit has no equivalent for. */
 const UNSUPPORTED_TEXT_KEYS = new Set<string>([
   'textTransform',
-  'fontVariant',
   'includeFontPadding',
   'verticalAlign',
   'textAlignVertical',
@@ -145,6 +146,11 @@ export function splitStyle(style: TextStyle): SplitStyle {
       } else {
         unsupported.push(key);
       }
+    } else if (key === 'fontVariant') {
+      // React Native takes an array or a space-separated string; the native
+      // side parses the string, for the same reason `fontWeight` is a string.
+      const tokens = Array.isArray(value) ? value : String(value).split(' ');
+      text.fontVariant = tokens.filter(Boolean).join(' ');
     } else if (key === 'textAlign') {
       // `auto` is the platform default, so dropping it changes nothing.
       if (value !== 'auto') {

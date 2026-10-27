@@ -12,6 +12,7 @@
     _decorationStyle = NSUnderlineStyleSingle;
     _shadowOffset = CGSizeZero;
     _writingDirection = NSWritingDirectionNatural;
+    _lineBreakMode = NSLineBreakByWordWrapping;
   }
   return self;
 }
@@ -37,6 +38,8 @@
   copy.shadowRadius = _shadowRadius;
   copy.writingDirection = _writingDirection;
   copy.lineBreakStrategy = _lineBreakStrategy;
+  copy.lineBreakMode = _lineBreakMode;
+  copy.fontFeatures = _fontFeatures;
   return copy;
 }
 
@@ -49,6 +52,17 @@
 }
 
 - (UIFont *)font
+{
+  UIFont *font = [self fontWithoutFeatures];
+  if (_fontFeatures.count == 0) {
+    return font;
+  }
+  UIFontDescriptor *descriptor = [font.fontDescriptor
+      fontDescriptorByAddingAttributes:@{UIFontDescriptorFeatureSettingsAttribute : _fontFeatures}];
+  return [UIFont fontWithDescriptor:descriptor size:font.pointSize];
+}
+
+- (UIFont *)fontWithoutFeatures
 {
   CGFloat size = [self scaledFontSize];
   UIFont *base = nil;
@@ -105,7 +119,8 @@
   }
 
   BOOL needsParagraphStyle = _lineHeight > 0 || _textAlign != NSTextAlignmentNatural ||
-      _writingDirection != NSWritingDirectionNatural || _lineBreakStrategy != NSLineBreakStrategyNone;
+      _writingDirection != NSWritingDirectionNatural || _lineBreakStrategy != NSLineBreakStrategyNone ||
+      _lineBreakMode != NSLineBreakByWordWrapping;
   if (needsParagraphStyle) {
     NSMutableParagraphStyle *paragraphStyle = [NSMutableParagraphStyle new];
     paragraphStyle.alignment = _textAlign;
@@ -121,6 +136,7 @@
     if (_lineBreakStrategy != NSLineBreakStrategyNone) {
       paragraphStyle.lineBreakStrategy = _lineBreakStrategy;
     }
+    paragraphStyle.lineBreakMode = _lineBreakMode;
     if (_writingDirection != NSWritingDirectionNatural) {
       paragraphStyle.baseWritingDirection = _writingDirection;
     }
@@ -172,7 +188,9 @@
       _decorationStyle == other.decorationStyle &&
       (_shadowColor == other.shadowColor || [_shadowColor isEqual:other.shadowColor]) &&
       CGSizeEqualToSize(_shadowOffset, other.shadowOffset) && _shadowRadius == other.shadowRadius &&
-      _writingDirection == other.writingDirection && _lineBreakStrategy == other.lineBreakStrategy;
+      _writingDirection == other.writingDirection && _lineBreakStrategy == other.lineBreakStrategy &&
+      _lineBreakMode == other.lineBreakMode &&
+      (_fontFeatures == other.fontFeatures || [_fontFeatures isEqualToArray:other.fontFeatures]);
 }
 
 @end
