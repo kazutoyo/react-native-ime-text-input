@@ -7,6 +7,8 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-10-28
+
 ### Added
 
 - `lineBreakModeIOS` on iOS, as `NSParagraphStyle.lineBreakMode`. Like the
@@ -260,7 +262,8 @@ Initial release. A drop-in replacement for React Native's `TextInput` that
 restores the IME composition underline on iOS by owning the UIKit views, with
 React Native's own `TextInput` on Android and web.
 
-[Unreleased]: https://github.com/kazutoyo/react-native-ime-text-input/compare/0.8.0...HEAD
+[Unreleased]: https://github.com/kazutoyo/react-native-ime-text-input/compare/1.0.0...HEAD
+[1.0.0]: https://github.com/kazutoyo/react-native-ime-text-input/compare/0.8.0...1.0.0
 [0.8.0]: https://github.com/kazutoyo/react-native-ime-text-input/compare/0.7.0...0.8.0
 [0.7.0]: https://github.com/kazutoyo/react-native-ime-text-input/compare/0.6.0...0.7.0
 [0.6.0]: https://github.com/kazutoyo/react-native-ime-text-input/compare/0.5.0...0.6.0
