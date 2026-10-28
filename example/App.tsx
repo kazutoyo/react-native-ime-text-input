@@ -85,6 +85,18 @@ export default function App() {
           <Kinsoku strategy="push-out" testID="kinsoku-push-out" />
         </Section>
 
+        <Section label="10. onPressIn / onPressOut / onPress">
+          <Pressing />
+        </Section>
+
+        <Section label="11. onScroll (multiline)">
+          <Scrolling />
+        </Section>
+
+        <Section label="12. numberOfLines={3} — 5 lines of text, 3 lines tall">
+          <Lines />
+        </Section>
+
         <Text style={styles.hint}>end of screen</Text>
       </ScrollView>
 
@@ -283,6 +295,63 @@ function Overflowing({ scrollEnabled, testID }: { scrollEnabled: boolean; testID
   );
 }
 
+/** Each press appends to the log; a press also focuses the field. */
+function Pressing() {
+  const [log, setLog] = useState<string[]>([]);
+  const add = (name: string) => setLog((current) => [...current.slice(-5), name]);
+  return (
+    <>
+      <Framed>
+        <TextInput
+          style={styles.input}
+          placeholder="Tap me"
+          onPressIn={() => add('in')}
+          onPressOut={() => add('out')}
+          onPress={() => add('press')}
+          testID="pressing"
+        />
+      </Framed>
+      <Text style={styles.echo} testID="pressing-log">
+        events: {log.join(' ')}
+      </Text>
+    </>
+  );
+}
+
+function Scrolling() {
+  const [offset, setOffset] = useState(0);
+  return (
+    <>
+      <Framed>
+        <TextInput
+          style={styles.overflowing}
+          defaultValue={OVERFLOWING}
+          multiline
+          onScroll={(event) => setOffset(Math.round(event.nativeEvent.contentOffset.y))}
+          testID="on-scroll"
+        />
+      </Framed>
+      <Text style={styles.echo} testID="on-scroll-offset">
+        contentOffset.y: {offset}
+      </Text>
+    </>
+  );
+}
+
+function Lines() {
+  return (
+    <Framed>
+      <TextInput
+        style={styles.lines}
+        defaultValue={'1\n2\n3\n4\n5'}
+        multiline
+        numberOfLines={3}
+        testID="number-of-lines"
+      />
+    </Framed>
+  );
+}
+
 /**
  * The chat composer. No height state and no `onContentSizeChange`: the native
  * view publishes its content size as Fabric state, so Yoga grows the field on
@@ -338,6 +407,12 @@ const styles = StyleSheet.create({
     color: '#000000',
     fontSize: 17,
     height: 38,
+    paddingHorizontal: 10,
+  },
+  lines: {
+    backgroundColor: '#ffffff',
+    color: '#000000',
+    fontSize: 17,
     paddingHorizontal: 10,
   },
   overflowing: {
