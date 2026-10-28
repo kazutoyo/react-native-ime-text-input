@@ -81,6 +81,12 @@ static NSLineBreakMode RNImeTextInputLineBreakMode(const std::string &value)
   return NSLineBreakByWordWrapping;
 }
 
+/** Within half a point either way — the precision content sizes are compared at. */
+static BOOL RNImeTextInputSizesMatch(CGSize a, CGSize b)
+{
+  return fabs(a.height - b.height) <= 0.5 && fabs(a.width - b.width) <= 0.5;
+}
+
 /** Splits a space-separated prop into its tokens, in order. */
 static NSArray<NSString *> *RNImeTextInputTokens(const std::string &value)
 {
@@ -402,6 +408,8 @@ static UIKeyboardAppearance RNImeTextInputKeyboardAppearance(const std::string &
   BOOL _autoCorrect;
   BOOL _enablesReturnKeyAutomatically;
   NSInteger _maxLength;
+  /// 0 means the field grows without a cap.
+  NSInteger _numberOfLines;
   std::string _submitBehavior;
   std::string _spellCheck;
   UIColor *_selectionColor;
@@ -424,6 +432,9 @@ static UIKeyboardAppearance RNImeTextInputKeyboardAppearance(const std::string &
   NSString *_accessoryButtonTitle;
 
   CGSize _lastReportedContentSize;
+  /// The size last published as state; differs from the reported size only
+  /// when `numberOfLines` caps it.
+  CGSize _lastLayoutSize;
   /// The Fabric state this view publishes its content size into. Retained as a
   /// shared_ptr (as RN core does, RCTTextInputComponentView.mm:46): the shadow
   /// thread releases old revisions concurrently with main-thread use, so a raw
@@ -471,6 +482,7 @@ static UIKeyboardAppearance RNImeTextInputKeyboardAppearance(const std::string &
     _smartInsertDelete = UITextSmartInsertDeleteTypeDefault;
     _clearButtonMode = UITextFieldViewModeNever;
     _lastReportedContentSize = CGSizeZero;
+    _lastLayoutSize = CGSizeZero;
 
     self.clipsToBounds = YES;
 
@@ -664,14 +676,19 @@ static UIKeyboardAppearance RNImeTextInputKeyboardAppearance(const std::string &
 
   _applyingFromJS = fromJS;
   NSRange previousSelection = [self selectionRange];
+  NSInteger offsetFromEnd = (NSInteger)[self currentText].length - (NSInteger)previousSelection.location;
   if (_textView != nil) {
     _textView.text = newValue;
   } else {
     _textField.text = newValue;
   }
-  // Keep the caret where it was rather than letting it jump to the start.
-  NSUInteger clamped = MIN(previousSelection.location, newValue.length);
-  [self setSelectionStart:(NSInteger)clamped end:(NSInteger)clamped];
+  // SYNC: React Native keeps the caret the same distance from the end
+  // (`RCTTextInputComponentView`'s `_setAttributedString`), so a prefilled
+  // field starts with it at the end, where UIKit puts it too. Measured from the
+  // start instead, it stayed at 0 and the first focus scrolled a multiline field
+  // back to the top.
+  NSInteger caret = MAX(0, (NSInteger)newValue.length - offsetFromEnd);
+  [self setSelectionStart:caret end:caret];
   _applyingFromJS = NO;
 
   [self updatePlaceholderVisibility];
@@ -1265,15 +1282,50 @@ static UIKeyboardAppearance RNImeTextInputKeyboardAppearance(const std::string &
 }
 
 /**
- Reports the size the text wants, so JavaScript can grow the field the way a
- React Native `TextInput` does. Only real changes are dispatched — this runs on
- every layout and keystroke.
+ The height the text needs at the width it gets, capped at `numberOfLines`.
+
+ The cap is measured the way React Native's iOS text layout measures it
+ (`RCTTextLayoutManager.mm`): a standalone container limited to that many
+ lines. Asking the text view's own `layoutManager` instead would drop it from
+ TextKit 2 back to TextKit 1.
  */
-- (void)notifyContentSizeChange
+// ponytail: lays the whole text out again on every measure (every keystroke
+// while capped); cache by width / attributes / numberOfLines if long texts lag.
+- (CGFloat)heightOfLines:(NSInteger)lines atWidth:(CGFloat)width
+{
+  // One line past the cap is enough to tell whether the text goes over it.
+  NSTextContainer *container = [[NSTextContainer alloc] initWithSize:CGSizeMake(width, CGFLOAT_MAX)];
+  container.lineFragmentPadding = 0;
+  container.maximumNumberOfLines = lines + 1;
+  NSLayoutManager *layoutManager = [NSLayoutManager new];
+  [layoutManager addTextContainer:container];
+  NSTextStorage *storage = [[NSTextStorage alloc] initWithAttributedString:_textView.attributedText];
+  [storage addLayoutManager:layoutManager];
+  [layoutManager ensureLayoutForTextContainer:container];
+
+  __block NSInteger count = 0;
+  __block CGFloat height = CGFLOAT_MAX;
+  [layoutManager enumerateLineFragmentsForGlyphRange:NSMakeRange(0, layoutManager.numberOfGlyphs)
+                                          usingBlock:^(CGRect rect, CGRect, NSTextContainer *, NSRange, BOOL *) {
+                                            if (++count == lines) {
+                                              height = CGRectGetMaxY(rect);
+                                            }
+                                          }];
+  // The empty line the caret sits on after a trailing newline counts too.
+  if (!CGRectIsEmpty(layoutManager.extraLineFragmentRect)) {
+    count++;
+  }
+  // Under the cap the text view's own measurement stands, so the two layout
+  // engines never get to disagree about text that fits.
+  return count > lines ? ceil(height) : CGFLOAT_MAX;
+}
+
+/** The content-box size the text needs, or zero while there is nothing to measure yet. */
+- (CGSize)measureContentSize
 {
   UIView *input = [self input];
   if (input == nil || self.bounds.size.width <= 0) {
-    return;
+    return CGSizeZero;
   }
   // Measure at the width the text actually gets. The published height must be
   // the content height only: measureContent reports a content-box size and
@@ -1281,7 +1333,7 @@ static UIKeyboardAppearance RNImeTextInputKeyboardAppearance(const std::string &
   UIEdgeInsets padding = [self paddingInsets];
   CGFloat textWidth = self.bounds.size.width - _contentInsets.left - _contentInsets.right;
   if (textWidth <= 0) {
-    return;
+    return CGSizeZero;
   }
   CGSize size;
   if (_textView != nil) {
@@ -1295,26 +1347,60 @@ static UIKeyboardAppearance RNImeTextInputKeyboardAppearance(const std::string &
     size = [input sizeThatFits:CGSizeMake(textWidth, CGFLOAT_MAX)];
     size.width = textWidth;
   }
+  return size;
+}
 
-  if (fabs(size.height - _lastReportedContentSize.height) <= 0.5 &&
-      fabs(size.width - _lastReportedContentSize.width) <= 0.5) {
+/**
+ The size the field is laid out at: the content size, capped at
+ `numberOfLines`. Only the layout is capped — React Native's
+ `onContentSizeChange` keeps reporting the text's real size.
+ */
+- (CGSize)layoutSizeForContentSize:(CGSize)size
+{
+  if (_numberOfLines > 0 && _textView != nil && size.height > 0) {
+    size.height = MIN(size.height, [self heightOfLines:_numberOfLines atWidth:size.width]);
+  }
+  return size;
+}
+
+- (CGSize)layoutContentSize
+{
+  return [self layoutSizeForContentSize:[self measureContentSize]];
+}
+
+/**
+ Reports the size the text wants, so JavaScript can grow the field the way a
+ React Native `TextInput` does. Only real changes are dispatched — this runs on
+ every layout and keystroke.
+ */
+- (void)notifyContentSizeChange
+{
+  CGSize size = [self measureContentSize];
+  if (size.height <= 0) {
     return;
   }
-  _lastReportedContentSize = size;
 
   // Publishing the size as state is what makes the field grow on its own: the
   // shadow node reports it from `measureContent`, so Yoga sizes the node
-  // without a round trip through JavaScript. The event is still dispatched for
-  // callers that ask for it, matching React Native's `onContentSizeChange`.
-  if (_state != nullptr) {
-    _state->updateState(RNImeTextInputStateData{facebook::react::Size{
-        .width = static_cast<Float>(size.width),
-        .height = static_cast<Float>(size.height),
-    }});
+  // without a round trip through JavaScript.
+  CGSize layoutSize = [self layoutSizeForContentSize:size];
+  if (!RNImeTextInputSizesMatch(layoutSize, _lastLayoutSize)) {
+    _lastLayoutSize = layoutSize;
+    if (_state != nullptr) {
+      _state->updateState(RNImeTextInputStateData{facebook::react::Size{
+          .width = static_cast<Float>(layoutSize.width),
+          .height = static_cast<Float>(layoutSize.height),
+      }});
+    }
   }
 
-  if (_eventEmitter != nullptr) {
-    [self emitter].onContentSizeChange({.width = size.width, .height = size.height});
+  // The event is still dispatched for callers that ask for it, matching React
+  // Native's `onContentSizeChange` — with the uncapped size, as it does.
+  if (!RNImeTextInputSizesMatch(size, _lastReportedContentSize)) {
+    _lastReportedContentSize = size;
+    if (_eventEmitter != nullptr) {
+      [self emitter].onContentSizeChange({.width = size.width, .height = size.height});
+    }
   }
 }
 
@@ -1367,6 +1453,37 @@ static UIKeyboardAppearance RNImeTextInputKeyboardAppearance(const std::string &
     return NO;
   }
   return YES;
+}
+
+#pragma mark - UIScrollViewDelegate
+
+/**
+ Only the `UITextView` ever calls this — a `UITextField` is not a scroll view.
+
+ SYNC: the metrics React Native's `RCTTextInputComponentView` reports from the
+ same callback. `responderIgnoreScroll` — set for scrolls the user did not drive
+ (layout, programmatic), which the responder system then ignores — is newer
+ than 0.86, whose payload lacks it; JavaScript there ignores the extra key.
+ */
+- (void)scrollViewDidScroll:(UIScrollView *)scrollView
+{
+  if (_eventEmitter == nullptr) {
+    return;
+  }
+  [self emitter].onScroll({
+      .contentOffset = {.x = scrollView.contentOffset.x, .y = scrollView.contentOffset.y},
+      .contentInset =
+          {
+              .top = scrollView.contentInset.top,
+              .left = scrollView.contentInset.left,
+              .bottom = scrollView.contentInset.bottom,
+              .right = scrollView.contentInset.right,
+          },
+      .contentSize = {.width = scrollView.contentSize.width, .height = scrollView.contentSize.height},
+      .layoutMeasurement = {.width = scrollView.bounds.size.width, .height = scrollView.bounds.size.height},
+      .zoomScale = scrollView.zoomScale,
+      .responderIgnoreScroll = !(scrollView.isDragging || scrollView.isDecelerating),
+  });
 }
 
 #pragma mark - UITextFieldDelegate
@@ -1560,6 +1677,10 @@ static UIKeyboardAppearance RNImeTextInputKeyboardAppearance(const std::string &
   }
 
   _maxLength = newProps.maxLength;
+  if (old == nullptr || newProps.numberOfLines != old->numberOfLines) {
+    _numberOfLines = newProps.numberOfLines;
+    [self notifyContentSizeChange];
+  }
   _autoFocus = newProps.autoFocus;
   _selectTextOnFocus = newProps.selectTextOnFocus;
   _clearTextOnFocus = newProps.clearTextOnFocus;
@@ -1603,6 +1724,7 @@ static UIKeyboardAppearance RNImeTextInputKeyboardAppearance(const std::string &
   _pendingAttributeApply = NO;
   _didAutoFocus = NO;
   _lastReportedContentSize = CGSizeZero;
+  _lastLayoutSize = CGSizeZero;
   // A recycled view keeps its backing views, so the toolbar has to be taken off
   // explicitly — the next mount may not want one.
   _accessoryButtonLabel = nil;

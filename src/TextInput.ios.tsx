@@ -1,6 +1,7 @@
-import { useEffect, useImperativeHandle, useLayoutEffect, useReducer, useRef } from 'react';
-import { StyleSheet, type TextStyle } from 'react-native';
+import { useEffect, useImperativeHandle, useLayoutEffect, useMemo, useReducer, useRef } from 'react';
+import { StyleSheet, type GestureResponderEvent, type TextStyle } from 'react-native';
 import TextInputState from 'react-native/Libraries/Components/TextInput/TextInputState';
+import usePressability from 'react-native/Libraries/Pressability/usePressability';
 
 import { ARIA_PROPS, mapAriaProps } from './aria';
 import RNImeTextInputNativeComponent, {
@@ -135,9 +136,14 @@ export function TextInput(props: TextInputProps) {
     onSelectionChange,
     onContentSizeChange,
     onKeyPress,
+    onScroll,
     selection,
     editable,
     readOnly,
+    onPress,
+    onPressIn,
+    onPressOut,
+    rejectResponderTermination = true,
     showSoftInputOnFocus,
     lineBreakStrategyIOS,
     lineBreakModeIOS,
@@ -148,6 +154,8 @@ export function TextInput(props: TextInputProps) {
     multiline,
     scrollEnabled,
     maxLength,
+    numberOfLines,
+    rows,
     autoFocus,
     selectTextOnFocus,
     clearTextOnFocus,
@@ -262,6 +270,29 @@ export function TextInput(props: TextInputProps) {
     Commands.setSelection(nativeRef.current, selectionStart, selectionEnd ?? selectionStart);
   }, [selectionStart, selectionEnd]);
 
+  const isEditable = editable ?? (readOnly === undefined ? true : !readOnly);
+
+  // SYNC: React Native's TextInput.js builds the same config and spreads the
+  // handlers onto its native view. A `Pressable` wrapper would put an extra
+  // view in the tree, which is exactly what this component promises not to do.
+  const pressabilityConfig = useMemo(
+    () => ({
+      cancelable: !rejectResponderTermination,
+      hitSlop: rest.hitSlop,
+      onPress: (event: GestureResponderEvent) => {
+        onPress?.(event);
+        if (isEditable && nativeRef.current) {
+          Commands.focus(nativeRef.current);
+        }
+      },
+      onPressIn,
+      onPressOut,
+    }),
+    [isEditable, rest.hitSlop, onPress, onPressIn, onPressOut, rejectResponderTermination]
+  );
+  // Focus and blur come from the field itself, so pressability's are dropped.
+  const { onBlur: _onBlur, onFocus: _onFocus, ...pressHandlers } = usePressability(pressabilityConfig);
+
   const flat = (StyleSheet.flatten(style) ?? {}) as TextStyle;
   const { viewStyle, text: textStyle, unsupported: unsupportedStyle } = splitStyle(flat);
 
@@ -269,13 +300,13 @@ export function TextInput(props: TextInputProps) {
     warnUnsupported('style', unsupportedStyle);
   }
 
-  const isEditable = editable ?? (readOnly === undefined ? true : !readOnly);
   const shadowOffset = textStyle.textShadowOffset;
 
   return (
     <RNImeTextInputNativeComponent
       {...forwardable(rest as Record<string, unknown>)}
       {...mapAriaProps(props as Record<string, unknown>)}
+      {...pressHandlers}
       ref={nativeRef}
       style={viewStyle}
       // `value` is what makes the field controlled; without it the revision
@@ -289,6 +320,7 @@ export function TextInput(props: TextInputProps) {
       multiline={multiline ?? false}
       scrollEnabled={scrollEnabled ?? true}
       maxLength={maxLength ?? 0}
+      numberOfLines={rows ?? numberOfLines ?? 0}
       editable={isEditable}
       showSoftInputOnFocus={showSoftInputOnFocus ?? true}
       lineBreakStrategyIOS={str(lineBreakStrategyIOS)}
@@ -349,6 +381,9 @@ export function TextInput(props: TextInputProps) {
       writingDirection={str(textStyle.writingDirection)}
       fontVariant={str(textStyle.fontVariant)}
       testID={testID}
+      // React Native's own payload, so the handler goes through unwrapped; the
+      // cast only bridges its `unknown` return type to codegen's `void`.
+      onScroll={onScroll as never}
       onChangeText={(event) => {
         const next = event.nativeEvent.text;
         lastEventCountRef.current = event.nativeEvent.eventCount;

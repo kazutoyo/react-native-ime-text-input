@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen, userEvent } from '@testing-library/react-native';
 import { createRef } from 'react';
 import TextInputState from 'react-native/Libraries/Components/TextInput/TextInputState';
 
@@ -113,6 +113,25 @@ describe('<TextInput> events', () => {
     await fireEvent(input(), 'inputKeyPress', { nativeEvent: { key: 'Backspace' } });
 
     expect(onKeyPress.mock.calls[0][0].nativeEvent).toEqual({ key: 'Backspace' });
+  });
+
+  it('calls onScroll with the scroll metrics React Native reports', async () => {
+    const onScroll = jest.fn();
+    await render(<TextInput testID="input" multiline onScroll={onScroll} />);
+    const nativeEvent = {
+      contentOffset: { x: 0, y: 40 },
+      contentInset: { top: 0, left: 0, bottom: 0, right: 0 },
+      contentSize: { width: 320, height: 200 },
+      layoutMeasurement: { width: 320, height: 110 },
+      zoomScale: 1,
+      responderIgnoreScroll: false,
+    };
+
+    await fireEvent(input(), 'scroll', { nativeEvent });
+
+    expect(onScroll).toHaveBeenCalledTimes(1);
+    expect(onScroll.mock.calls[0][0].nativeEvent).toEqual(nativeEvent);
+    expect(console.warn).not.toHaveBeenCalled();
   });
 
   it('calls onContentSizeChange with the measured size', async () => {
@@ -537,10 +556,30 @@ describe('<TextInput> props reaching the native view', () => {
     expect(nativeProps().fontVariant).toBe('');
   });
 
-  it('drops the props that do nothing on iOS, and warns', async () => {
-    await render(<TextInput testID="input" onScroll={() => {}} underlineColorAndroid="red" />);
+  it('sends numberOfLines down', async () => {
+    await render(<TextInput testID="input" multiline numberOfLines={3} />);
 
-    expect(nativeProps().onScroll).toBeUndefined();
+    expect(nativeProps().numberOfLines).toBe(3);
+    expect(console.warn).not.toHaveBeenCalled();
+  });
+
+  it('prefers rows over numberOfLines, as React Native does', async () => {
+    await render(<TextInput testID="input" multiline rows={2} numberOfLines={5} />);
+
+    expect(nativeProps().numberOfLines).toBe(2);
+    expect(nativeProps().rows).toBeUndefined();
+  });
+
+  it('sends 0, meaning no cap, when neither is given', async () => {
+    await render(<TextInput testID="input" />);
+
+    expect(nativeProps().numberOfLines).toBe(0);
+  });
+
+  it('drops the props that do nothing on iOS, and warns', async () => {
+    await render(<TextInput testID="input" textBreakStrategy="simple" underlineColorAndroid="red" />);
+
+    expect(nativeProps().textBreakStrategy).toBeUndefined();
     expect(nativeProps().underlineColorAndroid).toBeUndefined();
     expect(console.warn).toHaveBeenCalledTimes(2);
   });
@@ -548,17 +587,69 @@ describe('<TextInput> props reaching the native view', () => {
   // React Native implements these on iOS, but the native view here has no
   // matching prop, so forwarding them used to drop them without a word.
   it.each<[string, unknown]>([
-    ['onPress', () => {}],
-    ['onPressIn', () => {}],
-    ['onPressOut', () => {}],
-    ['numberOfLines', 3],
-    ['rows', 3],
     ['experimental_acceptDragAndDropTypes', ['public.plain-text']],
   ])('drops `%s` instead of forwarding it silently, and warns', async (name, value) => {
     await render(<TextInput testID="input" {...({ [name]: value } as object)} />);
 
     expect(nativeProps()[name]).toBeUndefined();
     expect(console.warn).toHaveBeenCalledWith(expect.stringContaining(`\`${name}\``));
+  });
+});
+
+describe('<TextInput> pressability', () => {
+  it('calls onPressIn, onPressOut and onPress for a tap', async () => {
+    const calls: string[] = [];
+    await render(
+      <TextInput
+        testID="input"
+        onPressIn={() => calls.push('in')}
+        onPressOut={() => calls.push('out')}
+        onPress={() => calls.push('press')}
+      />
+    );
+
+    await userEvent.press(input());
+
+    expect(calls).toEqual(['in', 'out', 'press']);
+    expect(console.warn).not.toHaveBeenCalled();
+  });
+
+  it('focuses the field when pressed, as React Native does', async () => {
+    await render(<TextInput testID="input" onPress={() => {}} />);
+
+    await userEvent.press(input());
+
+    expect(Commands.focus).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not focus a field that is not editable', async () => {
+    await render(<TextInput testID="input" editable={false} onPress={() => {}} />);
+
+    await userEvent.press(input());
+
+    expect(Commands.focus).not.toHaveBeenCalled();
+  });
+
+  // React Native's default is `rejectResponderTermination = true`: a parent
+  // such as a ScrollView cannot take the touch away from the field.
+  it('refuses to hand the responder over by default', async () => {
+    await render(<TextInput testID="input" />);
+
+    expect(nativeProps().onResponderTerminationRequest()).toBe(false);
+  });
+
+  it('hands the responder over when rejectResponderTermination is false', async () => {
+    await render(<TextInput testID="input" rejectResponderTermination={false} />);
+
+    expect(nativeProps().onResponderTerminationRequest()).toBe(true);
+    expect(console.warn).not.toHaveBeenCalled();
+  });
+
+  it('leaves focus and blur to the field, not to pressability', async () => {
+    await render(<TextInput testID="input" />);
+
+    expect(nativeProps().onFocus).toBeUndefined();
+    expect(nativeProps().onBlur).toBeUndefined();
   });
 });
 

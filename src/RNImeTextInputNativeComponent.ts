@@ -55,6 +55,12 @@ export interface NativeProps extends ViewProps {
   scrollEnabled?: CodegenTypes.WithDefault<boolean, true>;
   /** 0 means unlimited, matching React Native. */
   maxLength?: CodegenTypes.WithDefault<CodegenTypes.Int32, 0>;
+  /**
+   * Caps the height a multiline field grows to, in lines; past it the text
+   * scrolls. 0 means no cap. As in React Native's iOS view this only feeds the
+   * measurement — it is not a fixed height, and the text itself is not cut.
+   */
+  numberOfLines?: CodegenTypes.WithDefault<CodegenTypes.Int32, 0>;
 
   // -- Typography --
 
@@ -188,6 +194,28 @@ export interface NativeProps extends ViewProps {
   onSelectionChange?: CodegenTypes.DirectEventHandler<Readonly<{ start: CodegenTypes.Int32; end: CodegenTypes.Int32 }>>;
   onContentSizeChange?: CodegenTypes.DirectEventHandler<Readonly<{ width: CodegenTypes.Double; height: CodegenTypes.Double }>>;
   onInputKeyPress?: CodegenTypes.DirectEventHandler<Readonly<{ key: string }>>;
+  /**
+   * Multiline only — a `UITextField` does not scroll. SYNC: the payload is
+   * React Native's own (`TextInputEventEmitter.cpp`'s
+   * `textInputMetricsScrollPayload`), so the handler is passed through as is.
+   * `responderIgnoreScroll` comes from React Native after 0.86; older versions
+   * simply do not read it.
+   */
+  onScroll?: CodegenTypes.DirectEventHandler<
+    Readonly<{
+      contentOffset: Readonly<{ x: CodegenTypes.Double; y: CodegenTypes.Double }>;
+      contentInset: Readonly<{
+        top: CodegenTypes.Double;
+        left: CodegenTypes.Double;
+        bottom: CodegenTypes.Double;
+        right: CodegenTypes.Double;
+      }>;
+      contentSize: Readonly<{ width: CodegenTypes.Double; height: CodegenTypes.Double }>;
+      layoutMeasurement: Readonly<{ width: CodegenTypes.Double; height: CodegenTypes.Double }>;
+      zoomScale: CodegenTypes.Double;
+      responderIgnoreScroll: boolean;
+    }>
+  >;
 }
 
 export type RNImeTextInputViewType = HostComponent<NativeProps>;

@@ -23,6 +23,10 @@ using namespace facebook::react;
 - (CGFloat)fontSizeMultiplierForContentSizeCategory:(UIContentSizeCategory)category;
 - (CGFloat)effectiveFontSizeMultiplierForBase:(CGFloat)base;
 - (void)contentSizeCategoryDidChange;
+- (CGSize)measureContentSize;
+- (CGSize)layoutContentSize;
+- (NSRange)selectionRange;
+- (void)setSelectionStart:(NSInteger)start end:(NSInteger)end;
 @end
 
 /**
@@ -51,6 +55,7 @@ struct TestProps {
   int textRevision = 0;
   int mostRecentEventCount = 0;
   int maxLength = 0;
+  int numberOfLines = 0;
   double fontSize = 17;
   double lineHeight = 0;
   double letterSpacing = 0;
@@ -116,6 +121,7 @@ struct TestProps {
   next->textRevision = _values.textRevision;
   next->mostRecentEventCount = _values.mostRecentEventCount;
   next->maxLength = _values.maxLength;
+  next->numberOfLines = _values.numberOfLines;
   next->fontSize = _values.fontSize;
   next->lineHeight = _values.lineHeight;
   next->letterSpacing = _values.letterSpacing;
@@ -577,6 +583,102 @@ struct TestProps {
   UIFont *font = ((UITextView *)[_view input]).typingAttributes[NSFontAttributeName];
 
   XCTAssertNil(font.fontDescriptor.fontAttributes[UIFontDescriptorFeatureSettingsAttribute]);
+}
+
+#pragma mark - The caret across a value from JavaScript
+
+// Why distance from the end: see `-setTextValue:fromJS:`.
+
+- (void)testAValueFromJavaScriptLeavesTheCaretAtTheEnd
+{
+  [_view setTextValue:@"hello" fromJS:YES];
+
+  XCTAssertTrue(NSEqualRanges([_view selectionRange], NSMakeRange(5, 0)));
+}
+
+- (void)testTheCaretKeepsItsDistanceFromTheEnd
+{
+  [_view setTextValue:@"world" fromJS:YES];
+  [_view setSelectionStart:2 end:2];
+
+  [_view setTextValue:@"hello world" fromJS:YES];
+
+  // "wo|rld" → "hello wo|rld": still three characters from the end.
+  XCTAssertTrue(NSEqualRanges([_view selectionRange], NSMakeRange(8, 0)));
+}
+
+- (void)testACaretFurtherFromTheEndThanTheNewTextIsLongLandsAtTheStart
+{
+  [_view setTextValue:@"hello" fromJS:YES];
+  [_view setSelectionStart:0 end:0];
+
+  [_view setTextValue:@"hi" fromJS:YES];
+
+  XCTAssertTrue(NSEqualRanges([_view selectionRange], NSMakeRange(0, 0)));
+}
+
+#pragma mark - numberOfLines
+
+/** The height the field is laid out at for `text`, with the current props. */
+- (CGFloat)contentHeightFor:(NSString *)text
+{
+  [_view setTextValue:text fromJS:YES];
+  return [_view layoutContentSize].height;
+}
+
+- (void)testNumberOfLinesCapsTheHeightTheFieldGrowsTo
+{
+  CGFloat twoLines = [self contentHeightFor:@"1\n2"];
+  [self applyProps:^(TestProps &props) {
+    props.numberOfLines = 2;
+  }];
+
+  CGFloat capped = [self contentHeightFor:@"1\n2\n3\n4\n5"];
+
+  XCTAssertEqualWithAccuracy(capped, twoLines, 0.5);
+}
+
+- (void)testNumberOfLinesLeavesShorterTextAlone
+{
+  CGFloat oneLine = [self contentHeightFor:@"1"];
+  [self applyProps:^(TestProps &props) {
+    props.numberOfLines = 3;
+  }];
+
+  XCTAssertEqualWithAccuracy([self contentHeightFor:@"1"], oneLine, 0.5);
+}
+
+// React Native's `onContentSizeChange` reports the text view's real content
+// size; the cap only decides how tall the field is laid out.
+- (void)testTheContentSizeEventStillReportsTheFullHeight
+{
+  CGFloat twoLines = [self contentHeightFor:@"1\n2"];
+  [self applyProps:^(TestProps &props) {
+    props.numberOfLines = 2;
+  }];
+
+  [_view setTextValue:@"1\n2\n3\n4\n5" fromJS:YES];
+
+  XCTAssertGreaterThan([_view measureContentSize].height, twoLines + 1);
+}
+
+// After Return the caret sits on an empty last line. Under the cap, that line
+// must still be laid out rather than cut off by the cap's measurement.
+- (void)testATrailingNewlineUnderTheCapStillGrowsTheField
+{
+  [self applyProps:^(TestProps &props) {
+    props.numberOfLines = 3;
+  }];
+  [_view setTextValue:@"1\n2\n" fromJS:YES];
+
+  XCTAssertEqualWithAccuracy([_view layoutContentSize].height, [_view measureContentSize].height, 0.5);
+}
+
+- (void)testNoNumberOfLinesLetsTheFieldGrow
+{
+  CGFloat twoLines = [self contentHeightFor:@"1\n2"];
+
+  XCTAssertGreaterThan([self contentHeightFor:@"1\n2\n3\n4\n5"], twoLines + 1);
 }
 
 #pragma mark - Data detectors

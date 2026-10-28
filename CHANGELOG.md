@@ -20,14 +20,32 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   emptied, and restored when the prop is turned off again.
 - `measure()`, `measureInWindow()` and `measureLayout()` on the ref, on every
   platform, delegating to the native view.
+- `onPress`, `onPressIn`, `onPressOut` and `rejectResponderTermination` on
+  iOS, through React Native's own pressability on the native view — no
+  wrapper view is added. As in React Native, a press also focuses an editable
+  field, and by default a parent such as a `ScrollView` cannot take the touch
+  away from it. Every field now takes part in the JS responder system, as React
+  Native's does, so a touch that starts on a field no longer reaches a parent
+  `PanResponder` unless `rejectResponderTermination={false}` lets it go.
+- `onScroll` on iOS, for `multiline` fields, with React Native's own payload
+  (`contentOffset`, `contentInset`, `contentSize`, `layoutMeasurement`,
+  `zoomScale`, `responderIgnoreScroll`).
+- `numberOfLines` and `rows` on iOS. As in React Native's iOS view they cap
+  the height a `multiline` field grows to — past it the text scrolls — rather
+  than fixing the height; `rows` wins when both are given. `onContentSizeChange`
+  still reports the text's full size, as React Native's does.
 
 ### Fixed
 
-- `onPress`, `onPressIn`, `onPressOut`, `numberOfLines`, `rows` and
-  `experimental_acceptDragAndDropTypes` were forwarded to the native view on
-  iOS, which has no such props, so they did nothing without a word. They are
-  now dropped with the same one-time `__DEV__` warning as the other
-  unsupported props.
+- `experimental_acceptDragAndDropTypes` was forwarded to the native view on
+  iOS, which has no such prop, so it did nothing without a word. It is now
+  dropped with the same one-time `__DEV__` warning as the other unsupported
+  props.
+- A value set from JavaScript now keeps the caret the same distance from the
+  end of the text, as React Native does, instead of the same distance from the
+  start. A prefilled field's caret used to stay at the start, so the first
+  focus — now also given by a press after scrolling inside a `multiline`
+  field — scrolled it back to the top.
 
 ## [0.8.0] - 2026-10-06
 

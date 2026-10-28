@@ -85,6 +85,18 @@ export default function App() {
           <Kinsoku strategy="push-out" testID="kinsoku-push-out" />
         </Section>
 
+        <Section label="10. onPressIn / onPressOut / onPress">
+          <Pressing />
+        </Section>
+
+        <Section label="11. onScroll (multiline)">
+          <Scrolling />
+        </Section>
+
+        <Section label="12. numberOfLines={3} — 5 lines of text, 3 lines tall">
+          <Lines />
+        </Section>
+
         <Text style={styles.hint}>end of screen</Text>
       </ScrollView>
 
@@ -278,6 +290,74 @@ function Overflowing({ scrollEnabled, testID }: { scrollEnabled: boolean; testID
         multiline
         scrollEnabled={scrollEnabled}
         testID={testID}
+      />
+    </Framed>
+  );
+}
+
+/** Each press appends to the log; a press also focuses the field. */
+function Pressing() {
+  const [log, setLog] = useState<string[]>([]);
+  const add = (name: string) => setLog((current) => [...current.slice(-5), name]);
+  return (
+    <>
+      <Framed>
+        <TextInput
+          style={styles.input}
+          placeholder="Tap me"
+          onPressIn={() => add('in')}
+          onPressOut={() => add('out')}
+          onPress={() => add('press')}
+          testID="pressing"
+        />
+      </Framed>
+      <Text style={styles.echo} testID="pressing-log">
+        events: {log.join(' ')}
+      </Text>
+    </>
+  );
+}
+
+/**
+ * Scroll inside the field, then focus it with the button: the offset must
+ * survive the focus. The field used to keep a prefilled value's caret at the
+ * start, so focusing scrolled it back to the top.
+ */
+function Scrolling() {
+  const inputRef = useRef<TextInputRef>(null);
+  const [offset, setOffset] = useState(0);
+  return (
+    <>
+      <Framed>
+        <TextInput
+          ref={inputRef}
+          style={styles.overflowing}
+          defaultValue={OVERFLOWING}
+          multiline
+          onScroll={(event) => setOffset(Math.round(event.nativeEvent.contentOffset.y))}
+          testID="on-scroll"
+        />
+      </Framed>
+      <Text style={styles.echo} testID="on-scroll-offset">
+        contentOffset.y: {offset}
+      </Text>
+      <View style={styles.row}>
+        <Button title="focus" onPress={() => inputRef.current?.focus()} testID="on-scroll-focus" />
+        <Button title="blur" onPress={() => inputRef.current?.blur()} testID="on-scroll-blur" />
+      </View>
+    </>
+  );
+}
+
+function Lines() {
+  return (
+    <Framed>
+      <TextInput
+        style={styles.overflowing}
+        defaultValue={'1\n2\n3\n4\n5'}
+        multiline
+        numberOfLines={3}
+        testID="number-of-lines"
       />
     </Framed>
   );
