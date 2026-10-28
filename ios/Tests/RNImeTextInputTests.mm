@@ -24,6 +24,8 @@ using namespace facebook::react;
 - (CGFloat)effectiveFontSizeMultiplierForBase:(CGFloat)base;
 - (void)contentSizeCategoryDidChange;
 - (CGSize)measureContentSize;
+- (NSRange)selectionRange;
+- (void)setSelectionStart:(NSInteger)start end:(NSInteger)end;
 @end
 
 /**
@@ -580,6 +582,43 @@ struct TestProps {
   UIFont *font = ((UITextView *)[_view input]).typingAttributes[NSFontAttributeName];
 
   XCTAssertNil(font.fontDescriptor.fontAttributes[UIFontDescriptorFeatureSettingsAttribute]);
+}
+
+#pragma mark - The caret across a value from JavaScript
+
+/*
+ SYNC: React Native keeps the caret at the same distance from the *end* of the
+ text (`RCTTextInputComponentView`'s `_setAttributedString`). Keeping it at the
+ same distance from the start instead left a prefilled field's caret at 0, so
+ the first focus scrolled a multiline field back to the top.
+ */
+
+- (void)testAValueFromJavaScriptLeavesTheCaretAtTheEnd
+{
+  [_view setTextValue:@"hello" fromJS:YES];
+
+  XCTAssertTrue(NSEqualRanges([_view selectionRange], NSMakeRange(5, 0)));
+}
+
+- (void)testTheCaretKeepsItsDistanceFromTheEnd
+{
+  [_view setTextValue:@"world" fromJS:YES];
+  [_view setSelectionStart:2 end:2];
+
+  [_view setTextValue:@"hello world" fromJS:YES];
+
+  // "wo|rld" → "hello wo|rld": still three characters from the end.
+  XCTAssertTrue(NSEqualRanges([_view selectionRange], NSMakeRange(8, 0)));
+}
+
+- (void)testACaretFurtherFromTheEndThanTheNewTextIsLongLandsAtTheStart
+{
+  [_view setTextValue:@"hello" fromJS:YES];
+  [_view setSelectionStart:0 end:0];
+
+  [_view setTextValue:@"hi" fromJS:YES];
+
+  XCTAssertTrue(NSEqualRanges([_view selectionRange], NSMakeRange(0, 0)));
 }
 
 #pragma mark - numberOfLines

@@ -9,6 +9,17 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added
 
+- `lineBreakModeIOS` on iOS, as `NSParagraphStyle.lineBreakMode`. Like the
+  other text attributes, it is held back while a conversion is open.
+- `fontVariant` on iOS, as font feature settings — the same variants React
+  Native's iOS text supports (`small-caps`, the numeral variants and
+  `stylistic-one` to `stylistic-twenty`), in either the array or the string form.
+- `dataDetectorTypes` on iOS. As in React Native it applies to `multiline`
+  fields only, and UIKit detects only while the field is not editable.
+- `disableKeyboardShortcuts` on iOS: the shortcut bar above the keyboard is
+  emptied, and restored when the prop is turned off again.
+- `measure()`, `measureInWindow()` and `measureLayout()` on the ref, on every
+  platform, delegating to the native view.
 - `onPress`, `onPressIn`, `onPressOut` and `rejectResponderTermination` on
   iOS, through React Native's own pressability on the native view — no
   wrapper view is added. As in React Native, a press also focuses an editable
@@ -21,27 +32,17 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   the height a `multiline` field grows to — past it the text scrolls — rather
   than fixing the height; `rows` wins when both are given.
 
-### Added
-
-- `lineBreakModeIOS` on iOS, as `NSParagraphStyle.lineBreakMode`. Like the
-  other text attributes, it is held back while a conversion is open.
-- `fontVariant` on iOS, as font feature settings — the same variants React
-  Native's iOS text supports (`small-caps`, the numeral variants and
-  `stylistic-one` to `stylistic-twenty`), in either the array or the string form.
-- `dataDetectorTypes` on iOS. As in React Native it applies to `multiline`
-  fields only, and UIKit detects only while the field is not editable.
-- `disableKeyboardShortcuts` on iOS: the shortcut bar above the keyboard is
-  emptied, and restored when the prop is turned off again.
-- `measure()`, `measureInWindow()` and `measureLayout()` on the ref, on every
-  platform, delegating to the native view.
-
 ### Fixed
 
-- `onPress`, `onPressIn`, `onPressOut`, `numberOfLines`, `rows` and
-  `experimental_acceptDragAndDropTypes` were forwarded to the native view on
-  iOS, which has no such props, so they did nothing without a word. They are
-  now dropped with the same one-time `__DEV__` warning as the other
-  unsupported props.
+- `experimental_acceptDragAndDropTypes` was forwarded to the native view on
+  iOS, which has no such prop, so it did nothing without a word. It is now
+  dropped with the same one-time `__DEV__` warning as the other unsupported
+  props.
+- A value set from JavaScript now keeps the caret the same distance from the
+  end of the text, as React Native does, instead of the same distance from the
+  start. A prefilled field's caret used to stay at the start, so the first
+  focus — now also given by a press after scrolling inside a `multiline`
+  field — scrolled it back to the top.
 
 ## [0.8.0] - 2026-10-06
 

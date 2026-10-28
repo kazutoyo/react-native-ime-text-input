@@ -666,14 +666,19 @@ static UIKeyboardAppearance RNImeTextInputKeyboardAppearance(const std::string &
 
   _applyingFromJS = fromJS;
   NSRange previousSelection = [self selectionRange];
+  NSInteger offsetFromEnd = (NSInteger)[self currentText].length - (NSInteger)previousSelection.location;
   if (_textView != nil) {
     _textView.text = newValue;
   } else {
     _textField.text = newValue;
   }
-  // Keep the caret where it was rather than letting it jump to the start.
-  NSUInteger clamped = MIN(previousSelection.location, newValue.length);
-  [self setSelectionStart:(NSInteger)clamped end:(NSInteger)clamped];
+  // SYNC: React Native keeps the caret the same distance from the end
+  // (`RCTTextInputComponentView`'s `_setAttributedString`), so a prefilled
+  // field starts with it at the end, where UIKit puts it too. Measured from the
+  // start instead, it stayed at 0 and the first focus scrolled a multiline field
+  // back to the top.
+  NSInteger caret = MAX(0, (NSInteger)newValue.length - offsetFromEnd);
+  [self setSelectionStart:caret end:caret];
   _applyingFromJS = NO;
 
   [self updatePlaceholderVisibility];
