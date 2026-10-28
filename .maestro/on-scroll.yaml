@@ -1,0 +1,39 @@
+# `onScroll` reports the multiline field's offset, and focusing the field
+# afterwards does not throw it away.
+#
+# Focusing scrolls a text view to its caret. The field used to keep a
+# prefilled value's caret at the start, so the first focus after scrolling —
+# a press does that too, as in React Native — sent it straight back to the top.
+# The focus comes from the ref here rather than from a press: a press only
+# counts when the finger lifts inside the field, which a swipe cannot be
+# pointed at reliably.
+#
+# The offset is asserted as a number above zero rather than "not 0", so a
+# label that is off screen or covered cannot make the flow pass.
+appId: com.kazutoyo-tokai-tn.example
+---
+- launchApp:
+    clearState: true
+
+- scrollUntilVisible:
+    element:
+      id: 'on-scroll-blur'
+- assertVisible:
+    id: 'on-scroll-offset'
+    text: 'contentOffset.y: 0'
+
+- swipe:
+    from:
+      id: 'on-scroll'
+    direction: UP
+- assertVisible:
+    id: 'on-scroll-offset'
+    text: 'contentOffset.y: [1-9][0-9]*'
+
+- tapOn:
+    id: 'on-scroll-focus'
+- tapOn:
+    id: 'on-scroll-blur'
+- assertVisible:
+    id: 'on-scroll-offset'
+    text: 'contentOffset.y: [1-9][0-9]*'

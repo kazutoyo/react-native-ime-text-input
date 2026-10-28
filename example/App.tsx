@@ -318,12 +318,19 @@ function Pressing() {
   );
 }
 
+/**
+ * Scroll inside the field, then focus it with the button: the offset must
+ * survive the focus. The field used to keep a prefilled value's caret at the
+ * start, so focusing scrolled it back to the top.
+ */
 function Scrolling() {
+  const inputRef = useRef<TextInputRef>(null);
   const [offset, setOffset] = useState(0);
   return (
     <>
       <Framed>
         <TextInput
+          ref={inputRef}
           style={styles.overflowing}
           defaultValue={OVERFLOWING}
           multiline
@@ -334,6 +341,10 @@ function Scrolling() {
       <Text style={styles.echo} testID="on-scroll-offset">
         contentOffset.y: {offset}
       </Text>
+      <View style={styles.row}>
+        <Button title="focus" onPress={() => inputRef.current?.focus()} testID="on-scroll-focus" />
+        <Button title="blur" onPress={() => inputRef.current?.blur()} testID="on-scroll-blur" />
+      </View>
     </>
   );
 }

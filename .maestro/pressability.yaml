@@ -1,0 +1,21 @@
+# `onPressIn`, `onPressOut` and `onPress` reach JavaScript, in that order.
+#
+# They come from React Native's pressability on the native view itself, not
+# from a wrapper, so this is the check that touches actually arrive there. A
+# press also focuses the field, as React Native's does; the log line is what
+# shows the callbacks ran.
+appId: com.kazutoyo-tokai-tn.example
+---
+- launchApp:
+    clearState: true
+
+- scrollUntilVisible:
+    element:
+      id: 'pressing'
+    centerElement: true
+
+- tapOn:
+    id: 'pressing'
+- assertVisible:
+    id: 'pressing-log'
+    text: 'events: in out press'
