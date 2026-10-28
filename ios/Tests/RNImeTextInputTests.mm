@@ -586,12 +586,7 @@ struct TestProps {
 
 #pragma mark - The caret across a value from JavaScript
 
-/*
- SYNC: React Native keeps the caret at the same distance from the *end* of the
- text (`RCTTextInputComponentView`'s `_setAttributedString`). Keeping it at the
- same distance from the start instead left a prefilled field's caret at 0, so
- the first focus scrolled a multiline field back to the top.
- */
+// Why distance from the end: see `-setTextValue:fromJS:`.
 
 - (void)testAValueFromJavaScriptLeavesTheCaretAtTheEnd
 {

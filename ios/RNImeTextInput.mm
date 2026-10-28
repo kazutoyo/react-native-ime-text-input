@@ -1272,11 +1272,6 @@ static UIKeyboardAppearance RNImeTextInputKeyboardAppearance(const std::string &
 }
 
 /**
- Reports the size the text wants, so JavaScript can grow the field the way a
- React Native `TextInput` does. Only real changes are dispatched — this runs on
- every layout and keystroke.
- */
-/**
  The height the text needs at the width it gets, capped at `numberOfLines`.
 
  The cap is measured the way React Native's iOS text layout measures it
@@ -1284,6 +1279,8 @@ static UIKeyboardAppearance RNImeTextInputKeyboardAppearance(const std::string &
  lines. Asking the text view's own `layoutManager` instead would drop it from
  TextKit 2 back to TextKit 1.
  */
+// ponytail: lays the whole text out again on every measure (every keystroke
+// while capped); cache by width / attributes / numberOfLines if long texts lag.
 - (CGFloat)heightOfLines:(NSInteger)lines atWidth:(CGFloat)width
 {
   NSTextContainer *container = [[NSTextContainer alloc] initWithSize:CGSizeMake(width, CGFLOAT_MAX)];
@@ -1333,6 +1330,11 @@ static UIKeyboardAppearance RNImeTextInputKeyboardAppearance(const std::string &
   return size;
 }
 
+/**
+ Reports the size the text wants, so JavaScript can grow the field the way a
+ React Native `TextInput` does. Only real changes are dispatched — this runs on
+ every layout and keystroke.
+ */
 - (void)notifyContentSizeChange
 {
   CGSize size = [self measureContentSize];

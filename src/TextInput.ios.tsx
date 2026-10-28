@@ -1,5 +1,5 @@
 import { useEffect, useImperativeHandle, useLayoutEffect, useMemo, useReducer, useRef } from 'react';
-import { StyleSheet, type TextStyle } from 'react-native';
+import { StyleSheet, type GestureResponderEvent, type TextStyle } from 'react-native';
 import TextInputState from 'react-native/Libraries/Components/TextInput/TextInputState';
 import usePressability from 'react-native/Libraries/Pressability/usePressability';
 
@@ -280,7 +280,7 @@ export function TextInput(props: TextInputProps) {
     () => ({
       cancelable: !rejectResponderTermination,
       hitSlop,
-      onPress: (event: Parameters<NonNullable<typeof onPress>>[0]) => {
+      onPress: (event: GestureResponderEvent) => {
         onPress?.(event);
         if (isEditable && nativeRef.current) {
           Commands.focus(nativeRef.current);

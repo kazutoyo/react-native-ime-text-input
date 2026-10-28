@@ -4,9 +4,9 @@
 # Focusing scrolls a text view to its caret. The field used to keep a
 # prefilled value's caret at the start, so the first focus after scrolling —
 # a press does that too, as in React Native — sent it straight back to the top.
-# The focus comes from the ref here rather than from a press: a press only
-# counts when the finger lifts inside the field, which a swipe cannot be
-# pointed at reliably.
+# The focus comes from the ref here: a press sends the same focus command, but
+# a real tap also lets UIKit move the caret under the finger, which would
+# step around the regression this flow is for.
 #
 # The offset is asserted as a number above zero rather than "not 0", so a
 # label that is off screen or covered cannot make the flow pass.
