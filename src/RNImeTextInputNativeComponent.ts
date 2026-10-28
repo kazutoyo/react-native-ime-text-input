@@ -198,6 +198,8 @@ export interface NativeProps extends ViewProps {
    * Multiline only — a `UITextField` does not scroll. SYNC: the payload is
    * React Native's own (`TextInputEventEmitter.cpp`'s
    * `textInputMetricsScrollPayload`), so the handler is passed through as is.
+   * `responderIgnoreScroll` comes from React Native after 0.86; older versions
+   * simply do not read it.
    */
   onScroll?: CodegenTypes.DirectEventHandler<
     Readonly<{

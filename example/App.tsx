@@ -353,7 +353,7 @@ function Lines() {
   return (
     <Framed>
       <TextInput
-        style={styles.lines}
+        style={styles.overflowing}
         defaultValue={'1\n2\n3\n4\n5'}
         multiline
         numberOfLines={3}
@@ -418,12 +418,6 @@ const styles = StyleSheet.create({
     color: '#000000',
     fontSize: 17,
     height: 38,
-    paddingHorizontal: 10,
-  },
-  lines: {
-    backgroundColor: '#ffffff',
-    color: '#000000',
-    fontSize: 17,
     paddingHorizontal: 10,
   },
   overflowing: {

@@ -24,6 +24,7 @@ using namespace facebook::react;
 - (CGFloat)effectiveFontSizeMultiplierForBase:(CGFloat)base;
 - (void)contentSizeCategoryDidChange;
 - (CGSize)measureContentSize;
+- (CGSize)layoutContentSize;
 - (NSRange)selectionRange;
 - (void)setSelectionStart:(NSInteger)start end:(NSInteger)end;
 @end
@@ -618,11 +619,11 @@ struct TestProps {
 
 #pragma mark - numberOfLines
 
-/** The content height the field reports for `text`, with the current props. */
+/** The height the field is laid out at for `text`, with the current props. */
 - (CGFloat)contentHeightFor:(NSString *)text
 {
   [_view setTextValue:text fromJS:YES];
-  return [_view measureContentSize].height;
+  return [_view layoutContentSize].height;
 }
 
 - (void)testNumberOfLinesCapsTheHeightTheFieldGrowsTo
@@ -645,6 +646,32 @@ struct TestProps {
   }];
 
   XCTAssertEqualWithAccuracy([self contentHeightFor:@"1"], oneLine, 0.5);
+}
+
+// React Native's `onContentSizeChange` reports the text view's real content
+// size; the cap only decides how tall the field is laid out.
+- (void)testTheContentSizeEventStillReportsTheFullHeight
+{
+  CGFloat twoLines = [self contentHeightFor:@"1\n2"];
+  [self applyProps:^(TestProps &props) {
+    props.numberOfLines = 2;
+  }];
+
+  [_view setTextValue:@"1\n2\n3\n4\n5" fromJS:YES];
+
+  XCTAssertGreaterThan([_view measureContentSize].height, twoLines + 1);
+}
+
+// After Return the caret sits on an empty last line. Under the cap, that line
+// must still be laid out rather than cut off by the cap's measurement.
+- (void)testATrailingNewlineUnderTheCapStillGrowsTheField
+{
+  [self applyProps:^(TestProps &props) {
+    props.numberOfLines = 3;
+  }];
+  [_view setTextValue:@"1\n2\n" fromJS:YES];
+
+  XCTAssertEqualWithAccuracy([_view layoutContentSize].height, [_view measureContentSize].height, 0.5);
 }
 
 - (void)testNoNumberOfLinesLetsTheFieldGrow

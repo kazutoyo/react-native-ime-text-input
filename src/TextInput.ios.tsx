@@ -140,7 +140,6 @@ export function TextInput(props: TextInputProps) {
     selection,
     editable,
     readOnly,
-    hitSlop,
     onPress,
     onPressIn,
     onPressOut,
@@ -279,7 +278,7 @@ export function TextInput(props: TextInputProps) {
   const pressabilityConfig = useMemo(
     () => ({
       cancelable: !rejectResponderTermination,
-      hitSlop,
+      hitSlop: rest.hitSlop,
       onPress: (event: GestureResponderEvent) => {
         onPress?.(event);
         if (isEditable && nativeRef.current) {
@@ -289,7 +288,7 @@ export function TextInput(props: TextInputProps) {
       onPressIn,
       onPressOut,
     }),
-    [isEditable, hitSlop, onPress, onPressIn, onPressOut, rejectResponderTermination]
+    [isEditable, rest.hitSlop, onPress, onPressIn, onPressOut, rejectResponderTermination]
   );
   // Focus and blur come from the field itself, so pressability's are dropped.
   const { onBlur: _onBlur, onFocus: _onFocus, ...pressHandlers } = usePressability(pressabilityConfig);
@@ -308,7 +307,6 @@ export function TextInput(props: TextInputProps) {
       {...forwardable(rest as Record<string, unknown>)}
       {...mapAriaProps(props as Record<string, unknown>)}
       {...pressHandlers}
-      hitSlop={hitSlop}
       ref={nativeRef}
       style={viewStyle}
       // `value` is what makes the field controlled; without it the revision

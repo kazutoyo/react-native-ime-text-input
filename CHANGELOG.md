@@ -24,13 +24,16 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   iOS, through React Native's own pressability on the native view — no
   wrapper view is added. As in React Native, a press also focuses an editable
   field, and by default a parent such as a `ScrollView` cannot take the touch
-  away from it.
+  away from it. Every field now takes part in the JS responder system, as React
+  Native's does, so a touch that starts on a field no longer reaches a parent
+  `PanResponder` unless `rejectResponderTermination={false}` lets it go.
 - `onScroll` on iOS, for `multiline` fields, with React Native's own payload
   (`contentOffset`, `contentInset`, `contentSize`, `layoutMeasurement`,
   `zoomScale`, `responderIgnoreScroll`).
 - `numberOfLines` and `rows` on iOS. As in React Native's iOS view they cap
   the height a `multiline` field grows to — past it the text scrolls — rather
-  than fixing the height; `rows` wins when both are given.
+  than fixing the height; `rows` wins when both are given. `onContentSizeChange`
+  still reports the text's full size, as React Native's does.
 
 ### Fixed
 
